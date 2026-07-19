@@ -1,0 +1,14 @@
+SRCS := $(wildcard *.cpp)
+OBJS := $(SRCS:.cpp=.o)
+
+TARGET := client.exe
+GCC := g++
+CXX_FLAGS := -std=c++17
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(GCC) $(OBJS) -o $(TARGET)
+
+%.o: %.cpp
+	$(GCC) $(CXX_FLAGS) -c $< -o $@
