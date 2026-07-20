@@ -12,3 +12,6 @@ $(TARGET): $(OBJS)
 
 %.o: %.cpp
 	$(GCC) $(CXX_FLAGS) -c $< -o $@
+
+clean:
+	rm -rf *.o *.d $(TARGET)
