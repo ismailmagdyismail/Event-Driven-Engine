@@ -85,7 +85,7 @@ std::pair<AsyncIO::Result, AsyncIO::SocketInfo> AsyncIO::TCPServerSocket::Accept
     }
 }
 
-AsyncIO::SocketInfo AsyncIO::TCPServerSocket::GetSocketInfo()
+int AsyncIO::TCPServerSocket::GetID()
 {
-    return m_oSocketData;
+    return m_oSocketData.fd;
 }

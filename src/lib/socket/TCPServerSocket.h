@@ -16,7 +16,7 @@ namespace AsyncIO
 
         Result Listen(unsigned int port);
         std::pair<Result, SocketInfo> Accept();
-        SocketInfo GetSocketInfo();
+        int GetID();
 
     private:
         SocketInfo m_oSocketData;

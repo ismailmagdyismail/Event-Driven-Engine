@@ -1,0 +1,8 @@
+- registeration
+- getID (not whole socket info)
+- un-register / close
+- threading and RCU | COW
+- thread pool
+- Design
+  - Main -> EventLoop::Register Callbacks to handle reads, writes
+  - Main -> Create Sockets (implictly call event loop internall), returns promise and future on reading and doing any async event

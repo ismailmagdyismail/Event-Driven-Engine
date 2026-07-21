@@ -1,7 +1,6 @@
 #include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
-#include <poll.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <thread>
@@ -9,25 +8,29 @@
 #include "PollUtils.h"
 #include "TCPSocket.h"
 #include "TCPServerSocket.h"
+#include "EventLoop.h"
+#include "Events.h"
 
-std::vector<pollfd> polledFDs;
 AsyncIO::TCPServerSocket serverSocket;
+AsyncIO::EventLoop loop;
+
 /*
-    - pollfd(s) are passed by copy
-    - since in some instances we are modifying the vector containing pollfd(s) entries, which may trigger re-sizing
+    - AsyncIO::EventContext(s) are passed by copy
+    - since in some instances we are modifying the vector containing AsyncIO::EventContext(s) entries, which may trigger re-sizing
     - since elements are not ptrs, this means old refs may be invalidated
 */
 
-void HandleTCPServerSocketReady(pollfd readyPollFD)
+void HandleClientDataReady(AsyncIO::EventContext readyPollFD);
+void HandleClientSocketReady(AsyncIO::EventContext readyPollFD);
+
+void HandleTCPServerSocketReady(AsyncIO::EventContext readyPollFD)
 {
     auto result = serverSocket.Accept();
     if (result.first.success == true)
     {
         std::cout << "Client Connection accepted " << result.second.fd << std::endl;
-        polledFDs.push_back(pollfd{
-            .fd = result.second.fd,
-            .events = POLLIN | POLLPRI,
-        });
+        loop.SubScribeToEvent(result.second.fd, AsyncIO::EventType::Read, [](AsyncIO::EventContext ctx)
+                              { HandleClientSocketReady(ctx); });
     }
     else
     {
@@ -35,53 +38,52 @@ void HandleTCPServerSocketReady(pollfd readyPollFD)
     }
 }
 
-void HandleClientClose(pollfd readyPollFD)
+void HandleClientClose(AsyncIO::EventContext readyPollFD)
 {
-    std::cout << "Connection closed " << readyPollFD.fd << std::endl;
-    auto it = std::find_if(polledFDs.begin(), polledFDs.end(), [&](const pollfd &polledFD)
-                           { return polledFD.fd == readyPollFD.fd; });
-    polledFDs.erase(it);
-    close(readyPollFD.fd);
+    std::cout << "Connection closed " << readyPollFD.id << std::endl;
+    loop.UnRegisterFromAllEvents(readyPollFD.id);
+    // close(readyPollFD.fd);
 }
 
-void HandleClientSpaceAvailable(pollfd readyPollFD)
+void HandleClientSpaceAvailable(AsyncIO::EventContext readyPollFD)
 {
     unsigned int size = 1024;
     char buffer[size];
     std::string echoMessage = "Server Echos Hello world";
     std::memset(buffer, 0, size);
     std::memcpy(buffer, echoMessage.data(), echoMessage.size());
-    int writtenBytes = write(readyPollFD.fd, buffer, size);
+    int writtenBytes = write(readyPollFD.id, buffer, size);
     if (writtenBytes == -1)
     {
         std::cerr << "Socket Write buffer is full, cannot write right now" << std::endl;
-        auto it = std::find_if(polledFDs.begin(), polledFDs.end(), [&](pollfd &polledFD)
-                               { return polledFD.fd == readyPollFD.fd; });
-        it->events = AsyncIO::PollHelpers::SetEvent(it->events, POLLOUT);
     }
     else
     {
         std::cerr << "Socket Write buffer is NOT full, full bytes written = " << writtenBytes << std::endl;
+        std::cout << "Wrote Echo buffer back to client successfully " << std::endl;
+
         if (writtenBytes != size)
         {
             throw std::runtime_error("[FATAL]: not all bytes got written");
         }
-        auto it = std::find_if(polledFDs.begin(), polledFDs.end(), [&](pollfd &polledFD)
-                               { return polledFD.fd == readyPollFD.fd; });
-        it->events = AsyncIO::PollHelpers::UnSetEvent(it->events, POLLOUT);
-        std::cout << "Wrote Echo buffer back to client successfully " << std::endl;
     }
+
+    //! TODO: chunked writes
+    // auto it = std::find_if(polledFDs.begin(), polledFDs.end(), [&](AsyncIO::EventContext &polledFD)
+    //    { return polledFD.fd == readyPollFD.fd; });
+    // 1[Subscribe to when space is available]it->events = AsyncIO::PollHelpers::SetEvent(it->events, POLLOUT);
+    // 2[un-subscribe since all message is written].it->events = AsyncIO::PollHelpers::UnSetEvent(it->events, POLLOUT);
 }
 
-void HandleClientDataReady(pollfd readyPollFD)
+void HandleClientDataReady(AsyncIO::EventContext readyPollFD)
 {
-    std::cout << "Reading Client Data" << readyPollFD.fd << std::endl;
+    std::cout << "Reading Client Data" << readyPollFD.id << std::endl;
     unsigned int size = 1024;
     char buffer[size];
-    int readBytes = read(readyPollFD.fd, buffer, size);
+    int readBytes = read(readyPollFD.id, buffer, size);
     if (readBytes == -1)
     {
-        std::cerr << "Error In Reading Client Bytes " << readyPollFD.fd << std::endl;
+        std::cerr << "Error In Reading Client Bytes " << readyPollFD.id << std::endl;
     }
     else if (readBytes == 0)
     {
@@ -98,26 +100,26 @@ void HandleClientDataReady(pollfd readyPollFD)
     }
 }
 
-void HandleClientSocketReady(pollfd readyPollFD)
+void HandleClientSocketReady(AsyncIO::EventContext readyPollFD)
 {
-    std::cout << "Client socket has some data ready " << readyPollFD.fd << std::endl;
-    if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.revents, POLLHUP))
+    std::cout << "Client socket has some data ready " << readyPollFD.id << std::endl;
+    if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.readyEvents, POLLHUP))
     {
         HandleClientClose(readyPollFD);
     }
-    else if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.revents, POLLIN))
+    else if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.readyEvents, POLLIN))
     {
         HandleClientDataReady(readyPollFD);
     }
-    else if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.revents, POLLOUT))
+    else if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.readyEvents, POLLOUT))
     {
         HandleClientSpaceAvailable(readyPollFD);
     }
 }
 
-void HandleReadyFD(pollfd readyPollFD)
+void HandleReadyFD(AsyncIO::EventContext readyPollFD)
 {
-    if (readyPollFD.fd == serverSocket.GetSocketInfo().fd)
+    if (readyPollFD.id == serverSocket.GetID())
     {
         std::cout << "Server Desc ready " << std::endl;
         HandleTCPServerSocketReady(readyPollFD);
@@ -134,29 +136,9 @@ int main()
     serverSocket = AsyncIO::TCPServerSocket::Create().second;
     serverSocket.Listen(8080);
 
-    polledFDs.push_back(pollfd{
-        .fd = serverSocket.GetSocketInfo().fd,
-        .events = POLLIN | POLLPRI,
-    });
+    loop.SubScribeToEvent(serverSocket.GetID(), AsyncIO::EventType::Read, [](AsyncIO::EventContext context)
+                          { HandleReadyFD(context); });
+    loop.Run();
 
-    while (true)
-    {
-        int iPollStatus = poll(polledFDs.data(), polledFDs.size(), 0);
-        if (iPollStatus == -1)
-        {
-            std::cerr << "Error in polling Descriptors " << std::endl;
-            exit(1);
-        }
-        //! Iterate over file desc being polled
-        for (unsigned int i = 0; i < polledFDs.size(); ++i)
-        {
-            if (AsyncIO::PollHelpers::IsReady(polledFDs[i].revents))
-            {
-                HandleReadyFD(polledFDs[i]);
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
-
-    close(serverSocket.GetSocketInfo().fd);
+    close(serverSocket.GetID());
 }

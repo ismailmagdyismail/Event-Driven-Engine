@@ -1,7 +1,7 @@
 ROOT_PATH := .
 include $(ROOT_PATH)/Common.mk
 
-all: SERVER CLIENT
+all: SERVER CLIENT CLEAN_LIB
 
 SERVER:
 	$(MAKE) -C $(SERVER_PATH) -f Makefile
@@ -18,4 +18,4 @@ CLEAN_SERVER:
 	$(MAKE) -C $(SERVER_PATH) clean -f Makefile
 
 CLEAN_LIB:
-	$(MAKE) -C $(SOCKET_LIB_PATH) clean -f Makefile
+	$(MAKE) -C $(LIB_ROOT_PATH) clean -f Makefile

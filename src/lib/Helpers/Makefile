@@ -4,8 +4,8 @@ include $(ROOT_PATH)/Common.mk
 SRCS := $(wildcard *.cpp)
 OBJS := $(SRCS:.cpp=.o)
 
-SHARED_TARGET := lib$(SOCKET_LIB_NAME).so
-STATIC_TARGET := lib$(SOCKET_LIB_NAME).a
+SHARED_TARGET := lib$(HELPERS_LIB_NAME).so
+STATIC_TARGET := lib$(HELPERS_LIB_NAME).a
 
 all: $(SHARED_TARGET)
 
