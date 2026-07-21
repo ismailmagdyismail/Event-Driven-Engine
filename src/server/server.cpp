@@ -6,67 +6,26 @@
 #include <arpa/inet.h>
 #include <thread>
 #include <chrono>
+#include "PollUtils.h"
+#include "TCPSocket.h"
+#include "TCPServerSocket.h"
 
-//! Check any bit is not set to 0
-//! thus any some type of event is ready
-inline bool IsReady(short state)
-{
-    return state != 0;
-}
-
-//! Check for specific event being set
-
-inline bool IsEventSet(short state, short eventToCheck)
-{
-    return (state & eventToCheck) != 0;
-}
-
-inline void SetEvent(short &state, short eventToSet)
-{
-    state |= eventToSet;
-}
-
-inline void UnSetEvent(short &state, short eventToUnset)
-{
-    state &= ~eventToUnset;
-}
-
-inline void LogEventsState(short state)
-{
-    std::cout << "POLLIN = " << IsEventSet(state, POLLIN) << std::endl;
-    std::cout << "POLLOUT = " << IsEventSet(state, POLLOUT) << std::endl;
-    std::cout << "POLLRDNORM = " << IsEventSet(state, POLLRDNORM) << std::endl;
-    std::cout << "POLLWRNORM = " << IsEventSet(state, POLLWRNORM) << std::endl;
-    std::cout << "POLLRDBAND = " << IsEventSet(state, POLLRDBAND) << std::endl;
-    std::cout << "POLLWRBAND = " << IsEventSet(state, POLLWRBAND) << std::endl;
-    std::cout << "POLLEXTEND = " << IsEventSet(state, POLLEXTEND) << std::endl;
-    std::cout << "POLLATTRIB = " << IsEventSet(state, POLLATTRIB) << std::endl;
-    std::cout << "POLLNLINK = " << IsEventSet(state, POLLNLINK) << std::endl;
-    std::cout << "POLLERR = " << IsEventSet(state, POLLERR) << std::endl;
-    std::cout << "POLLHUP = " << IsEventSet(state, POLLHUP) << std::endl;
-    std::cout << "POLLNVAL = " << IsEventSet(state, POLLNVAL) << std::endl;
-}
-
-int serverSocketFD{-1};
-sockaddr_in serverAddress;
-socklen_t addressSize;
 std::vector<pollfd> polledFDs;
-
+AsyncIO::TCPServerSocket serverSocket;
 /*
     - pollfd(s) are passed by copy
     - since in some instances we are modifying the vector containing pollfd(s) entries, which may trigger re-sizing
     - since elements are not ptrs, this means old refs may be invalidated
 */
 
-void HandleServerSocketReady(pollfd readyPollFD)
+void HandleTCPServerSocketReady(pollfd readyPollFD)
 {
-    int clientFD = accept(readyPollFD.fd, reinterpret_cast<sockaddr *>(&serverAddress), &addressSize);
-    if (clientFD != -1)
+    auto result = serverSocket.Accept();
+    if (result.first.success == true)
     {
-        std::cout << "Client Connection accepted " << clientFD << std::endl;
-        fcntl(serverSocketFD, F_SETFL, O_NONBLOCK);
+        std::cout << "Client Connection accepted " << result.second.fd << std::endl;
         polledFDs.push_back(pollfd{
-            .fd = clientFD,
+            .fd = result.second.fd,
             .events = POLLIN | POLLPRI,
         });
     }
@@ -98,7 +57,7 @@ void HandleClientSpaceAvailable(pollfd readyPollFD)
         std::cerr << "Socket Write buffer is full, cannot write right now" << std::endl;
         auto it = std::find_if(polledFDs.begin(), polledFDs.end(), [&](pollfd &polledFD)
                                { return polledFD.fd == readyPollFD.fd; });
-        SetEvent(it->events, POLLOUT);
+        it->events = AsyncIO::PollHelpers::SetEvent(it->events, POLLOUT);
     }
     else
     {
@@ -109,7 +68,7 @@ void HandleClientSpaceAvailable(pollfd readyPollFD)
         }
         auto it = std::find_if(polledFDs.begin(), polledFDs.end(), [&](pollfd &polledFD)
                                { return polledFD.fd == readyPollFD.fd; });
-        UnSetEvent(it->events, POLLOUT);
+        it->events = AsyncIO::PollHelpers::UnSetEvent(it->events, POLLOUT);
         std::cout << "Wrote Echo buffer back to client successfully " << std::endl;
     }
 }
@@ -142,15 +101,15 @@ void HandleClientDataReady(pollfd readyPollFD)
 void HandleClientSocketReady(pollfd readyPollFD)
 {
     std::cout << "Client socket has some data ready " << readyPollFD.fd << std::endl;
-    if (IsEventSet(readyPollFD.revents, POLLHUP))
+    if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.revents, POLLHUP))
     {
         HandleClientClose(readyPollFD);
     }
-    else if (IsEventSet(readyPollFD.revents, POLLIN))
+    else if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.revents, POLLIN))
     {
         HandleClientDataReady(readyPollFD);
     }
-    else if (IsEventSet(readyPollFD.revents, POLLOUT))
+    else if (AsyncIO::PollHelpers::IsEventSet(readyPollFD.revents, POLLOUT))
     {
         HandleClientSpaceAvailable(readyPollFD);
     }
@@ -158,10 +117,10 @@ void HandleClientSocketReady(pollfd readyPollFD)
 
 void HandleReadyFD(pollfd readyPollFD)
 {
-    if (readyPollFD.fd == serverSocketFD)
+    if (readyPollFD.fd == serverSocket.GetSocketInfo().fd)
     {
         std::cout << "Server Desc ready " << std::endl;
-        HandleServerSocketReady(readyPollFD);
+        HandleTCPServerSocketReady(readyPollFD);
     }
     else
     {
@@ -172,31 +131,11 @@ void HandleReadyFD(pollfd readyPollFD)
 
 int main()
 {
-    serverSocketFD = socket(PF_INET, SOCK_STREAM, 0);
-    if (serverSocketFD == -1)
-    {
-        std::cerr << "Error Creating Server Socket" << std::endl;
-        exit(1);
-    }
-    fcntl(serverSocketFD, F_SETFL, O_NONBLOCK);
-    serverAddress.sin_family = PF_INET;
-    serverAddress.sin_port = htons(8080);
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
-    addressSize = sizeof(serverAddress);
-    int bindStatus = bind(serverSocketFD, reinterpret_cast<sockaddr *>(&serverAddress), addressSize);
-    if (bindStatus != 0)
-    {
-        std::cerr << "Error Binding Server Socket" << std::endl;
-        exit(1);
-    }
-    int iListenStatus = listen(serverSocketFD, 0);
-    if (iListenStatus != 0)
-    {
-        std::cerr << "Error Listening on Server Socket" << std::endl;
-        exit(1);
-    }
+    serverSocket = AsyncIO::TCPServerSocket::Create().second;
+    serverSocket.Listen(8080);
+
     polledFDs.push_back(pollfd{
-        .fd = serverSocketFD,
+        .fd = serverSocket.GetSocketInfo().fd,
         .events = POLLIN | POLLPRI,
     });
 
@@ -211,12 +150,13 @@ int main()
         //! Iterate over file desc being polled
         for (unsigned int i = 0; i < polledFDs.size(); ++i)
         {
-            if (IsReady(polledFDs[i].revents))
+            if (AsyncIO::PollHelpers::IsReady(polledFDs[i].revents))
             {
                 HandleReadyFD(polledFDs[i]);
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
-    close(serverSocketFD);
+
+    close(serverSocket.GetSocketInfo().fd);
 }
