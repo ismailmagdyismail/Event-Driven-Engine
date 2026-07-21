@@ -1,9 +1,10 @@
+ROOT_PATH := ../..
+include $(ROOT_PATH)/Common.mk
+
 SRCS := $(wildcard *.cpp)
 OBJS := $(SRCS:.cpp=.o)
 
 TARGET := server.exe
-GCC := g++
-CXX_FLAGS := -std=c++17
 
 all: $(TARGET)
 
