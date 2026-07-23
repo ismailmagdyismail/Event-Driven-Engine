@@ -1,0 +1,25 @@
+{
+  "configurations": [
+    {
+      "name": "Server Launch",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/server/server.exe",
+      "args": [],
+      "stopAtEntry": true,
+      "cwd": "${fileDirname}",
+      "environment": [
+        {
+          "name": "LD_LIBRARY_PATH",
+          "value": "${workspaceFolder}/src/lib/socket/:${workspaceFolder}/src/lib/Helpers/:${workspaceFolder}/src/lib/Threads/:${workspaceFolder}/src/lib/AsyncEngine/:${env:LD_LIBRARY_PATH}"
+        },
+        {
+          "name": "DYLD_LIBRARY_PATH",
+          "value": "${workspaceFolder}/src/lib/socket/:${workspaceFolder}/src/lib/Helpers/:${workspaceFolder}/src/lib/Threads/:${workspaceFolder}/src/lib/AsyncEngine/:${env:DYLD_LIBRARY_PATH}"
+        }
+      ],
+      "externalConsole": false,
+      "MIMode": "lldb"
+    }
+  ]
+}
