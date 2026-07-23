@@ -58,8 +58,9 @@ AsyncIO::Result AsyncIO::TCPServerSocket::Listen(unsigned int port)
     }
     m_uiPort = port;
 
-    return {
-        true,
+    return AsyncIO::Result{
+        .success = true,
+        .message = std::string{},
     };
 }
 

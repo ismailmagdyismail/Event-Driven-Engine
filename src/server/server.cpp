@@ -47,7 +47,7 @@ void HandleClientClose(AsyncIO::EventContext readyPollFD)
 
 void HandleClientSpaceAvailable(AsyncIO::EventContext readyPollFD)
 {
-    unsigned int size = 1024;
+    int size = 1024;
     char buffer[size];
     std::string echoMessage = "Server Echos Hello world";
     std::memset(buffer, 0, size);

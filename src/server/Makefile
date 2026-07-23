@@ -3,6 +3,7 @@ include $(ROOT_PATH)/Common.mk
 
 SRCS := $(wildcard *.cpp)
 OBJS := $(SRCS:.cpp=.o)
+DEPS := $(OBJS:.o=.d)
 
 TARGET := server.exe
 
@@ -21,3 +22,5 @@ BUILD_LIB:
 clean:
 	rm -rf *.o *.d $(TARGET)
 	$(MAKE) -C $(LIB_ROOT_PATH) -f Makefile clean
+
+-include $(DEPS)

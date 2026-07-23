@@ -3,6 +3,7 @@ include $(ROOT_PATH)/Common.mk
 
 SRCS := $(wildcard *.cpp)
 OBJS := $(SRCS:.cpp=.o)
+DEPS := $(OBJS:.o=.d)
 
 SHARED_TARGET := lib$(SOCKET_LIB_NAME).so
 STATIC_TARGET := lib$(SOCKET_LIB_NAME).a
@@ -20,3 +21,5 @@ $(STATIC_TARGET): $(OBJS)
 
 clean:
 	rm -rf *.o *.d $(STATIC_TARGET) $(SHARED_TARGET)
+
+-include $(DEPS)
