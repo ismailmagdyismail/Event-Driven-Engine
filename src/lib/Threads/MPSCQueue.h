@@ -32,7 +32,7 @@ public:
             //! 1. Has no space, we yield till consumer pop off
             if (uiSizeSnapshot >= m_uiMaxSize)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 continue;
             }
 
@@ -42,7 +42,7 @@ public:
             unsigned int uiSizeToUpdate = uiSizeSnapshot + 1;
             if (!m_uiSize.compare_exchange_strong(uiSizeSnapshot, uiSizeToUpdate, std::memory_order_release))
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 continue;
             }
             //! 2.2 if succeeded to break out of the loop, it means we owns the index, can write to it
@@ -59,7 +59,7 @@ public:
         bool bIsReading = true;
         while (m_uiSize.load(std::memory_order_acquire) == 0 && (bIsReading = m_bIsReading.load(std::memory_order_relaxed)))
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
         if (!bIsReading)
