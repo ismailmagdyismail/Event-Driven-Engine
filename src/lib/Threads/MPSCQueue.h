@@ -88,11 +88,6 @@ public:
     }
 
 private:
-    bool DidWrapOver(unsigned int readPosition, unsigned int writePosition)
-    {
-        return readPosition > writePosition;
-    }
-
     void UpdateIndex(unsigned int &p_iPosition)
     {
         unsigned int uiNextPosition = p_iPosition + 1;
