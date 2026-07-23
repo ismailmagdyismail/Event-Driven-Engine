@@ -7,6 +7,12 @@
 
 namespace AsyncIO
 {
+    enum class MPSCQueueReadState
+    {
+        Success,
+        Empty,
+        Stopped,
+    };
     template <typename T>
     class MPSCQueue
     {
@@ -75,26 +81,26 @@ namespace AsyncIO
             return true;
         }
 
-        bool Pop(T &readObject)
+        MPSCQueueReadState Pop(T &readObject)
         {
-            bool bReading = true;
+            bool bReading = m_bIsReading.load(std::memory_order_relaxed);
             unsigned int uiPhysicalReadLocation = GetPositionWithinBounds(m_uiHead);
-            bool bHasElementToRead = true;
-            do
-            {
-                bReading = m_bIsReading.load(std::memory_order_relaxed);
-                unsigned int uiPublishedVersion = m_vecCircularBuffer[uiPhysicalReadLocation]->m_uiVersion.load(std::memory_order_acquire);
-                bHasElementToRead = (uiPublishedVersion == m_uiHead + 1);
-            } while (!bHasElementToRead && bReading);
+            unsigned int uiPublishedVersion = m_vecCircularBuffer[uiPhysicalReadLocation]->m_uiVersion.load(std::memory_order_acquire);
+            bool bHasElementToRead = (uiPublishedVersion == m_uiHead + 1);
 
             if (!bReading)
             {
-                return false;
+                return MPSCQueueReadState::Stopped;
             }
+            if (!bHasElementToRead)
+            {
+                return MPSCQueueReadState::Empty;
+            }
+
             readObject = std::move(m_vecCircularBuffer[uiPhysicalReadLocation]->TObject);
             m_vecCircularBuffer[uiPhysicalReadLocation]->m_uiVersion.store(m_uiHead + m_uiMaxSize, std::memory_order_release);
             ++m_uiHead;
-            return true;
+            return MPSCQueueReadState::Success;
         }
 
         void StopReading()

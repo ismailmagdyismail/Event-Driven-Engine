@@ -7,6 +7,7 @@
 
 //! Async Engine
 #include "Result.h"
+#include "MPSCQueue.h"
 
 namespace AsyncIO
 {
@@ -14,6 +15,55 @@ namespace AsyncIO
     {
         int id;
         short readyEvents;
+    };
+    struct EventLoopRegistery
+    {
+        //! A Page Table / Buffer Pool inspired design
+        //! Index + actual data
+
+        std::unordered_map<int, std::pair<int, std::vector<pollfd>::iterator>> m_mapMonitoredFDsIndex;
+        std::vector<pollfd> m_vecMonitoredFDs;
+        std::unordered_map<int, std::function<void(EventContext)>> m_mapCallBacks;
+        // std::unordered_map<int, std::unordered_map<int, std::function<void(EventContext)>>> m_mapCallBacks;
+    };
+
+    class IEventLoopSubscriptionHandler
+    {
+    public:
+        virtual ~IEventLoopSubscriptionHandler() = default;
+        virtual void HandleSubscriptionRequest(EventLoopRegistery &) = 0;
+
+    private:
+    };
+
+    class SubscribeHandler : public IEventLoopSubscriptionHandler
+    {
+    public:
+        struct SubscribeHandlerContext
+        {
+            int fd;
+            std::function<void(EventContext)> callback;
+            short eventsToSubTo;
+        };
+        SubscribeHandler(SubscribeHandlerContext);
+        void HandleSubscriptionRequest(EventLoopRegistery &) override;
+
+    private:
+        SubscribeHandlerContext m_oContext;
+    };
+
+    class UnSubscribeHandler : public IEventLoopSubscriptionHandler
+    {
+    public:
+        struct UnSubscribeHandlerContext
+        {
+            int fd;
+        };
+        UnSubscribeHandler(UnSubscribeHandlerContext);
+        void HandleSubscriptionRequest(EventLoopRegistery &) override;
+
+    private:
+        UnSubscribeHandlerContext m_oContext;
     };
 
     class EventLoop
@@ -28,9 +78,8 @@ namespace AsyncIO
         void UnRegisterFromAllEvents(int id);
 
     private:
-        std::vector<pollfd> m_vecMonitoredFDs;
+        MPSCQueue<std::unique_ptr<IEventLoopSubscriptionHandler>> m_oRequestQueue;
+        EventLoopRegistery m_oRegistery;
         std::atomic<bool> m_bRunning;
-        std::unordered_map<int, std::function<void(EventContext)>> m_mapCallBacks;
-        // std::unordered_map<int, std::unordered_map<int, std::function<void(EventContext)>>> m_mapCallBacks;
     };
 }
