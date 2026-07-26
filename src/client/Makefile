@@ -9,8 +9,11 @@ TARGET := client.exe
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
-	$(GCC) $(OBJS) -o $(TARGET)
+$(TARGET): $(OBJS) BUILD_LIB
+	$(GCC) $(OBJS) $(LIBS) -o $(TARGET)
+
+BUILD_LIB:
+	$(MAKE) -C $(LIB_ROOT_PATH) -f Makefile
 
 %.o: %.cpp
 	$(GCC) $(CXX_FLAGS) $(INCLUDES) -c $< -o $@ -MP -MMD
