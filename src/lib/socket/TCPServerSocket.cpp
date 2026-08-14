@@ -116,3 +116,8 @@ int AsyncIO::TCPServerSocket::GetID()
 {
     return m_oSocketData.fd;
 }
+
+AsyncIO::TCPServerSocket::~TCPServerSocket()
+{
+    close(GetID());
+}

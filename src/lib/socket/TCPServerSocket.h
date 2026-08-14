@@ -16,6 +16,7 @@ namespace AsyncIO
     {
     public:
         static std::pair<Result, TCPServerSocket> Create(EventLoop *);
+        ~TCPServerSocket();
 
         Result Listen(unsigned int port);
         std::pair<Result, SocketInfo> AcceptSync();

@@ -138,6 +138,4 @@ int main()
     serverSocket.OnAccept([](AsyncIO::TCPClientSocket clientSocket)
                           { std::cerr << " accepted connection " << std::endl; });
     loop.Run();
-
-    close(serverSocket.GetID());
 }
