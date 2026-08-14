@@ -13,7 +13,7 @@ namespace AsyncIO
     {
     public:
         static std::pair<Result, TCPClientSocket> Create();
-        static void Create(SocketInfo);
+        static TCPClientSocket Create(SocketInfo);
 
         Result Connect(unsigned int port);
         int GetID();

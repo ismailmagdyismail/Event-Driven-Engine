@@ -11,8 +11,8 @@
 #include "EventLoop.h"
 #include "Events.h"
 
-AsyncIO::TCPServerSocket serverSocket;
 AsyncIO::EventLoop loop;
+AsyncIO::TCPServerSocket serverSocket = AsyncIO::TCPServerSocket::Create(&loop).second;
 
 /*
     - AsyncIO::EventContext(s) are passed by copy
@@ -23,9 +23,9 @@ AsyncIO::EventLoop loop;
 void HandleClientDataReady(AsyncIO::EventContext readyPollFD);
 void HandleClientSocketReady(AsyncIO::EventContext readyPollFD);
 
-void HandleTCPServerSocketReady(AsyncIO::EventContext readyPollFD)
+void HandleTCPServerSocketReady(AsyncIO::EventContext)
 {
-    auto result = serverSocket.Accept();
+    auto result = serverSocket.AcceptSync();
     if (result.first.success == true)
     {
         std::cout << "Client Connection accepted " << result.second.fd << std::endl;
@@ -133,11 +133,10 @@ void HandleReadyFD(AsyncIO::EventContext readyPollFD)
 
 int main()
 {
-    serverSocket = AsyncIO::TCPServerSocket::Create().second;
     serverSocket.Listen(8080);
 
-    loop.SubScribeToEvent(serverSocket.GetID(), AsyncIO::EventType::Read, [](AsyncIO::EventContext context)
-                          { HandleReadyFD(context); });
+    serverSocket.OnAccept([](AsyncIO::TCPClientSocket clientSocket)
+                          { std::cerr << " accepted connection " << std::endl; });
     loop.Run();
 
     close(serverSocket.GetID());

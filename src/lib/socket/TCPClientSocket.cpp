@@ -28,10 +28,11 @@ std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::C
     };
 }
 
-void AsyncIO::TCPClientSocket::Create(SocketInfo socketInfo)
+AsyncIO::TCPClientSocket AsyncIO::TCPClientSocket::Create(SocketInfo socketInfo)
 {
     AsyncIO::TCPClientSocket clientSocket;
     clientSocket.m_oSocketInfo = std::move(socketInfo);
+    return clientSocket;
 }
 
 #include <iostream>

@@ -5,8 +5,10 @@
 //! Async Engine
 #include "TCPServerSocket.h"
 #include "TCPSocket.h"
+#include "EventLoop.h"
+#include "Events.h"
 
-std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::Create()
+std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::Create(AsyncIO::EventLoop *p_pEventLoop)
 {
     //! 1. Create Socket FD
     std::pair<bool, AsyncIO::SocketInfo> socketCreationResult = AsyncIO::CreateTCPSocket();
@@ -15,9 +17,9 @@ std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::C
     {
         result.success = false;
         result.message = "Failed To Create Server Socket";
-        return {result, AsyncIO::TCPServerSocket{}};
+        return {result, AsyncIO::TCPServerSocket{nullptr}};
     }
-    AsyncIO::TCPServerSocket oSocket;
+    AsyncIO::TCPServerSocket oSocket{p_pEventLoop};
     oSocket.m_oSocketData = socketCreationResult.second;
 
     // 2. make it non blocking so reads, writes (if buffers are full) don't block caller threads.
@@ -25,7 +27,7 @@ std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::C
     {
         result.success = false;
         result.message = "Failed to make Server Socket Non Blocking";
-        return {result, AsyncIO::TCPServerSocket{}};
+        return {result, AsyncIO::TCPServerSocket{nullptr}};
     }
 
     result.success = true;
@@ -33,6 +35,11 @@ std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::C
         result,
         oSocket,
     };
+}
+
+AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::EventLoop *p_pEventloop)
+{
+    m_pEventLoop = p_pEventloop;
 }
 
 AsyncIO::Result AsyncIO::TCPServerSocket::Listen(unsigned int port)
@@ -64,7 +71,7 @@ AsyncIO::Result AsyncIO::TCPServerSocket::Listen(unsigned int port)
     };
 }
 
-std::pair<AsyncIO::Result, AsyncIO::SocketInfo> AsyncIO::TCPServerSocket::Accept()
+std::pair<AsyncIO::Result, AsyncIO::SocketInfo> AsyncIO::TCPServerSocket::AcceptSync()
 {
     AsyncIO::Result result;
     unsigned int addressSize = sizeof(m_oAddress);
@@ -84,6 +91,25 @@ std::pair<AsyncIO::Result, AsyncIO::SocketInfo> AsyncIO::TCPServerSocket::Accept
             AsyncIO::SocketInfo{},
         };
     }
+}
+
+void AsyncIO::TCPServerSocket::OnAccept(std::function<void(AsyncIO::TCPClientSocket)> p_fOnAcceptCallback)
+{
+    auto callback = [this, onAccCallback = std::move(p_fOnAcceptCallback)](AsyncIO::EventContext)
+    {
+        auto result = AcceptSync();
+        if (!result.first.success)
+        {
+            throw std::runtime_error("[FATAL]: Unhandled OnAcceptingError");
+        }
+        AsyncIO::SocketInfo sockInfo{
+            .fd = result.second.fd,
+        };
+        AsyncIO::TCPClientSocket clientSocket = AsyncIO::TCPClientSocket::Create(sockInfo);
+        onAccCallback(clientSocket);
+    };
+
+    m_pEventLoop->SubScribeToEvent(GetID(), AsyncIO::EventType::Read, std::move(callback));
 }
 
 int AsyncIO::TCPServerSocket::GetID()
