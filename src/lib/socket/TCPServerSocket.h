@@ -16,12 +16,12 @@ namespace AsyncIO
     {
     public:
         static std::pair<Result, TCPServerSocket> Create(EventLoop *);
-        ~TCPServerSocket();
 
         Result Listen(unsigned int port);
         std::pair<Result, SocketInfo> AcceptSync();
         void OnAccept(std::function<void(AsyncIO::TCPClientSocket)> p_fOnAcceptCallback);
         int GetID();
+        void Close();
 
     private:
         TCPServerSocket(EventLoop *);

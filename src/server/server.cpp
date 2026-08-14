@@ -133,7 +133,7 @@ void HandleReadyFD(AsyncIO::EventContext readyPollFD)
 
 int main()
 {
-    int port = 9090;
+    int port = 8080;
     auto listenResult = serverSocket.Listen(port);
     if (!listenResult.success)
     {
@@ -145,4 +145,6 @@ int main()
     serverSocket.OnAccept([](AsyncIO::TCPClientSocket clientSocket)
                           { std::cerr << " accepted connection " << std::endl; });
     loop.Run();
+
+    serverSocket.Close();
 }
