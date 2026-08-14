@@ -1,7 +1,7 @@
 ROOT_PATH := .
 include $(ROOT_PATH)/Common.mk
 
-all: SERVER CLIENT CLEAN_LIB
+all: SERVER CLIENT
 
 SERVER:
 	$(MAKE) -C $(SERVER_PATH) -f Makefile
