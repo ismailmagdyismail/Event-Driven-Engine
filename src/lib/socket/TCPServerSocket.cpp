@@ -93,7 +93,7 @@ std::pair<AsyncIO::Result, AsyncIO::SocketInfo> AsyncIO::TCPServerSocket::Accept
     }
 }
 
-void AsyncIO::TCPServerSocket::OnAccept(std::function<void(AsyncIO::TCPClientSocket)> p_fOnAcceptCallback)
+void AsyncIO::TCPServerSocket::OnAccept(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> p_fOnAcceptCallback)
 {
     auto callback = [this, onAccCallback = std::move(p_fOnAcceptCallback)](AsyncIO::EventContext)
     {
@@ -105,8 +105,8 @@ void AsyncIO::TCPServerSocket::OnAccept(std::function<void(AsyncIO::TCPClientSoc
         AsyncIO::SocketInfo sockInfo{
             .fd = result.second.fd,
         };
-        AsyncIO::TCPClientSocket clientSocket = AsyncIO::TCPClientSocket::Create(sockInfo);
-        onAccCallback(clientSocket);
+        std::unique_ptr<AsyncIO::TCPClientSocket> clientSocket = std::make_unique<AsyncIO::TCPClientSocket>(AsyncIO::TCPClientSocket::Create(m_pEventLoop, sockInfo));
+        onAccCallback(std::move(clientSocket));
     };
 
     m_pEventLoop->SubScribeToEvent(GetID(), AsyncIO::EventType::Read, std::move(callback));

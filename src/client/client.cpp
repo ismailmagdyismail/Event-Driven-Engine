@@ -8,8 +8,9 @@
 
 int main()
 {
-    AsyncIO::TCPClientSocket socket = AsyncIO::TCPClientSocket::Create().second;
-    
+    AsyncIO::EventLoop loop;
+    AsyncIO::TCPClientSocket socket = AsyncIO::TCPClientSocket::Create(&loop).second;
+
     if (!socket.Connect(8080).success)
     {
         std::cerr << "client failed to connect " << std::endl;

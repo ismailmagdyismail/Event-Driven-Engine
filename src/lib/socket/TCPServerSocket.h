@@ -19,7 +19,7 @@ namespace AsyncIO
 
         Result Listen(unsigned int port);
         std::pair<Result, SocketInfo> AcceptSync();
-        void OnAccept(std::function<void(AsyncIO::TCPClientSocket)> p_fOnAcceptCallback);
+        void OnAccept(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> p_fOnAcceptCallback);
         int GetID();
         void Close();
 
