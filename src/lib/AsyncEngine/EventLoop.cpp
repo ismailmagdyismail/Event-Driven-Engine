@@ -46,7 +46,12 @@ AsyncIO::Result AsyncIO::EventLoop::Run()
         {
             if (AsyncIO::PollHelpers::IsReady(m_oRegistery.m_vecMonitoredFDs[i].revents))
             {
-                m_oRegistery.m_mapCallBacks[m_oRegistery.m_vecMonitoredFDs[i].fd](EventContext{
+                auto callbackIt = m_oRegistery.m_mapCallBacks.find(m_oRegistery.m_vecMonitoredFDs[i].fd);
+                if (callbackIt == m_oRegistery.m_mapCallBacks.end())
+                {
+                    continue;
+                }
+                callbackIt->second(EventContext{
                     .id = m_oRegistery.m_vecMonitoredFDs[i].fd,
                     .readyEvents = m_oRegistery.m_vecMonitoredFDs[i].revents,
                 });
@@ -87,14 +92,20 @@ AsyncIO::SubscribeHandler::SubscribeHandler(AsyncIO::SubscribeHandler::Subscribe
 void AsyncIO::SubscribeHandler::HandleSubscriptionRequest(AsyncIO::EventLoopRegistery &registery)
 {
     registery.m_mapCallBacks[m_oContext.fd] = std::move(m_oContext.callback);
-    registery.m_vecMonitoredFDs.push_back(pollfd{
-        .events = m_oContext.eventsToSubTo,
-        .fd = m_oContext.fd,
-    });
-    auto it = registery.m_vecMonitoredFDs.end();
-    it--;
-    int idx = registery.m_vecMonitoredFDs.size() - 1;
-    registery.m_mapMonitoredFDsIndex[m_oContext.fd] = {idx, it};
+
+    auto monitoredFdIt = registery.m_mapMonitoredFDsIndex.find(m_oContext.fd);
+    if (monitoredFdIt != registery.m_mapMonitoredFDsIndex.end())
+    {
+        registery.m_vecMonitoredFDs[monitoredFdIt->second].events =
+            AsyncIO::PollHelpers::SetEvent(registery.m_vecMonitoredFDs[monitoredFdIt->second].events, m_oContext.eventsToSubTo);
+        return;
+    }
+
+    pollfd monitoredFd{};
+    monitoredFd.fd = m_oContext.fd;
+    monitoredFd.events = m_oContext.eventsToSubTo;
+    registery.m_vecMonitoredFDs.push_back(monitoredFd);
+    registery.m_mapMonitoredFDsIndex[m_oContext.fd] = registery.m_vecMonitoredFDs.size() - 1;
 }
 
 AsyncIO::UnSubscribeHandler::UnSubscribeHandler(AsyncIO::UnSubscribeHandler::UnSubscribeHandlerContext context) : m_oContext(std::move(context))
@@ -103,7 +114,24 @@ AsyncIO::UnSubscribeHandler::UnSubscribeHandler(AsyncIO::UnSubscribeHandler::UnS
 
 void AsyncIO::UnSubscribeHandler::HandleSubscriptionRequest(AsyncIO::EventLoopRegistery &registery)
 {
-    auto it = registery.m_mapMonitoredFDsIndex[m_oContext.fd].second;
-    registery.m_vecMonitoredFDs.erase(it);
+    auto monitoredFdIt = registery.m_mapMonitoredFDsIndex.find(m_oContext.fd);
+    if (monitoredFdIt == registery.m_mapMonitoredFDsIndex.end())
+    {
+        return;
+    }
+
+    //! 1. Replace element to be removed with the last element
+    //! 2. then remove last element (safe since already replicated by step 1.)
+    //! this allows removal from back, avoid shifting all elements by 1 slot.
+    unsigned int idx = monitoredFdIt->second;
+    unsigned int lastIdx = registery.m_vecMonitoredFDs.size() - 1;
+    if (idx != lastIdx)
+    {
+        registery.m_vecMonitoredFDs[idx] = registery.m_vecMonitoredFDs[lastIdx];
+        registery.m_mapMonitoredFDsIndex[registery.m_vecMonitoredFDs[idx].fd] = idx;
+    }
+
+    registery.m_vecMonitoredFDs.pop_back();
+    registery.m_mapMonitoredFDsIndex.erase(monitoredFdIt);
     registery.m_mapCallBacks.erase(m_oContext.fd);
 }

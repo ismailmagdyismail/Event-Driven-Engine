@@ -4,6 +4,9 @@
 #include <atomic>
 #include <poll.h>
 #include <functional>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 //! Async Engine
 #include "Result.h"
@@ -21,7 +24,7 @@ namespace AsyncIO
         //! A Page Table / Buffer Pool inspired design
         //! Index + actual data
 
-        std::unordered_map<int, std::pair<int, std::vector<pollfd>::iterator>> m_mapMonitoredFDsIndex;
+        std::unordered_map<int, unsigned int> m_mapMonitoredFDsIndex;
         std::vector<pollfd> m_vecMonitoredFDs;
         std::unordered_map<int, std::function<void(EventContext)>> m_mapCallBacks;
         // std::unordered_map<int, std::unordered_map<int, std::function<void(EventContext)>>> m_mapCallBacks;
