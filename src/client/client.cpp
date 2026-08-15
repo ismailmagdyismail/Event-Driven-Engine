@@ -19,7 +19,13 @@ int main()
         std::string_view slice(buffer, size);
         std::cout << "Recieved message from server " << slice << std::endl;
     };
+    auto onSocketDisconnect = [&]()
+    {
+        std::cout << "Server connection lost, terminating client ...." << std::endl;
+        loop.Stop();
+    };
     socket.OnRead(std::move(onSocketRead));
+    socket.OnClose(std::move(onSocketDisconnect));
 
     auto onTerminalRead = [&](char *buffer, unsigned int size)
     {
