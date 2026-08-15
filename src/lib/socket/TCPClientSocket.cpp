@@ -1,6 +1,13 @@
-#include "TCPClientSocket.h"
+//! System Includes
+#include <unistd.h>
 
-std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::Create()
+//! Async Engine
+#include "TCPClientSocket.h"
+#include "EventLoop.h"
+#include "Events.h"
+#include "PollUtils.h"
+
+std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::Create(EventLoop *p_pEventLoop)
 {
     std::pair<bool, AsyncIO::SocketInfo> socketCreationResult = AsyncIO::CreateTCPSocket();
     AsyncIO::Result result;
@@ -8,10 +15,11 @@ std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::C
     {
         result.success = false;
         result.message = "Failed To Create Server Socket";
-        return {result, AsyncIO::TCPClientSocket{}};
+        return {result, AsyncIO::TCPClientSocket{nullptr}};
     }
-    AsyncIO::TCPClientSocket oSocket;
+    AsyncIO::TCPClientSocket oSocket{p_pEventLoop};
     oSocket.m_oSocketInfo = socketCreationResult.second;
+    oSocket.m_oAsyncFDIO.SetFD(oSocket.m_oSocketInfo.fd);
 
     //! TODO: WHY DOES THIS MAKE CLIENT Connect return -1
     // if (!AsyncIO::MakeNonBlocking(oSocket.m_oSocketInfo.fd))
@@ -28,13 +36,14 @@ std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::C
     };
 }
 
-void AsyncIO::TCPClientSocket::Create(SocketInfo socketInfo)
+AsyncIO::TCPClientSocket AsyncIO::TCPClientSocket::Create(EventLoop *p_pEventLoop, SocketInfo socketInfo)
 {
-    AsyncIO::TCPClientSocket clientSocket;
+    AsyncIO::TCPClientSocket clientSocket{p_pEventLoop};
     clientSocket.m_oSocketInfo = std::move(socketInfo);
+    clientSocket.m_oAsyncFDIO.SetFD(clientSocket.m_oSocketInfo.fd);
+    return clientSocket;
 }
 
-#include <iostream>
 AsyncIO::Result AsyncIO::TCPClientSocket::Connect(unsigned int port)
 {
     sockaddr_in address;
@@ -43,7 +52,6 @@ AsyncIO::Result AsyncIO::TCPClientSocket::Connect(unsigned int port)
     address.sin_addr.s_addr = INADDR_ANY;
 
     int connectionStatus = connect(m_oSocketInfo.fd, reinterpret_cast<sockaddr *>(&address), sizeof(address));
-    std::cerr << m_oSocketInfo.fd << " = " << connectionStatus << std::endl;
     if (connectionStatus == -1)
     {
         return Result{
@@ -57,7 +65,32 @@ AsyncIO::Result AsyncIO::TCPClientSocket::Connect(unsigned int port)
     };
 }
 
+void AsyncIO::TCPClientSocket::Write(const char *buffer, unsigned int size)
+{
+    m_oAsyncFDIO.Write(buffer, size);
+}
+
+void AsyncIO::TCPClientSocket::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)
+{
+    m_oAsyncFDIO.OnRead(std::move(p_fOnReadCallback));
+}
+
+void AsyncIO::TCPClientSocket::OnClose(std::function<void(void)> p_fOnCloseCallback)
+{
+    m_oAsyncFDIO.OnClose(std::move(p_fOnCloseCallback));
+}
+
 int AsyncIO::TCPClientSocket::GetID()
 {
-    return m_oSocketInfo.fd;
+    return m_oAsyncFDIO.GetID();
+}
+
+AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::EventLoop *p_pEventLoop)
+    : m_oAsyncFDIO(p_pEventLoop)
+{
+}
+
+void AsyncIO::TCPClientSocket::Close()
+{
+    m_oAsyncFDIO.Close();
 }

@@ -8,18 +8,16 @@
 #include "Result.h"
 #include "TCPSocket.h"
 #include "EventLoop.h"
-#include "AsyncFdIO.h"
 
 namespace AsyncIO
 {
     class EventLoop;
-    class TCPClientSocket
+    class AsyncFdIO
     {
     public:
-        static std::pair<Result, TCPClientSocket> Create(EventLoop *);
-        static TCPClientSocket Create(EventLoop *, SocketInfo);
+        AsyncFdIO(EventLoop *);
+        void SetFD(int);
 
-        Result Connect(unsigned int port);
         void Write(const char *buffer, unsigned int);
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
@@ -27,8 +25,16 @@ namespace AsyncIO
         void Close();
 
     private:
-        TCPClientSocket(EventLoop *);
-        SocketInfo m_oSocketInfo;
-        AsyncFdIO m_oAsyncFDIO;
+        void SetupWithEventLoop();
+
+        void HandleEventReady(EventContext ctx);
+        void HandleClose();
+        void HandleDataReady();
+
+        std::function<void(void)> m_fOnCloseHandler{nullptr};
+        std::function<void(char *, unsigned int)> m_fOnReadHandler{nullptr};
+        bool m_bSetUp{false};
+        int m_iFD;
+        EventLoop *m_pEventLoop;
     };
 }

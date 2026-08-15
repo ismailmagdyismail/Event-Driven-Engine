@@ -5,8 +5,8 @@ SRCS := $(wildcard *.cpp)
 OBJS := $(SRCS:.cpp=.o)
 DEPS := $(OBJS:.o=.d)
 
-SHARED_TARGET := lib$(HELPERS_LIB_NAME).so
-STATIC_TARGET := lib$(HELPERS_LIB_NAME).a
+SHARED_TARGET := lib$(TERMINAL_IO_LIB_NAME).so
+STATIC_TARGET := lib$(TERMINAL_IO_LIB_NAME).a
 
 all: $(SHARED_TARGET)
 
