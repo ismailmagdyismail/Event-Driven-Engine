@@ -63,6 +63,22 @@ AsyncIO::Result AsyncIO::TCPClientSocket::Connect(unsigned int port)
     };
 }
 
+void AsyncIO::TCPClientSocket::Write(char *buffer, unsigned int size)
+{
+    int writtenBytes = write(GetID(), buffer, size);
+    if (writtenBytes == -1)
+    {
+        throw std::runtime_error("[NOT-Implemented] Socket Write buffer is full, cannot write right now");
+    }
+    else
+    {
+        if (writtenBytes != size)
+        {
+            throw std::runtime_error("[FATAL]: not all bytes got written");
+        }
+    }
+}
+
 void AsyncIO::TCPClientSocket::HandleClientSocketReady(AsyncIO::EventContext ctx)
 {
     if (AsyncIO::PollHelpers::IsEventSet(ctx.readyEvents, POLLHUP))

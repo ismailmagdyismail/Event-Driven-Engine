@@ -19,6 +19,7 @@ namespace AsyncIO
         static TCPClientSocket Create(EventLoop *, SocketInfo);
 
         Result Connect(unsigned int port);
+        void Write(char *buffer, unsigned int);
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
         int GetID();

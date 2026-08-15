@@ -15,15 +15,15 @@ AsyncIO::EventLoop loop;
 AsyncIO::TCPServerSocket serverSocket = AsyncIO::TCPServerSocket::Create(&loop).second;
 std::unordered_map<unsigned int, std::unique_ptr<AsyncIO::TCPClientSocket>> activeConnections;
 
-// void EchoBack(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)
-// {
-//     socket->Write(buffer, size);
-// }
+void EchoBack(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)
+{
+    socket->Write(buffer, size);
+}
 
 void OnClientRead(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)
 {
-    std::cerr << "read message from socket " << socket->GetID() << size << std::endl;
-    // EchoBack(socket, buffer, size);
+    std::cerr << "read message from socket " << socket->GetID() << " with size = " << size << std::endl;
+    EchoBack(socket, buffer, size);
 }
 
 void OnClientClose(AsyncIO::TCPClientSocket *clientSocket)
