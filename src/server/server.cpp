@@ -22,7 +22,8 @@ void EchoBack(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)
 
 void OnClientRead(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)
 {
-    std::cerr << "read message from socket " << socket->GetID() << " with size = " << size << std::endl;
+    std::string_view slice(buffer, size);
+    std::cerr << "read message from socket " << socket->GetID() << " message: " << slice << " with size = " << size << std::endl;
     EchoBack(socket, buffer, size);
 }
 

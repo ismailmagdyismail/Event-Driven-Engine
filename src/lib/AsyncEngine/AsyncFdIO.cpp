@@ -16,7 +16,7 @@ void AsyncIO::AsyncFdIO::SetFD(int fd)
     m_iFD = fd;
 }
 
-void AsyncIO::AsyncFdIO::Write(char *buffer, unsigned int size)
+void AsyncIO::AsyncFdIO::Write(const char *buffer, unsigned int size)
 {
     int writtenBytes = write(GetID(), buffer, size);
     if (writtenBytes == -1)

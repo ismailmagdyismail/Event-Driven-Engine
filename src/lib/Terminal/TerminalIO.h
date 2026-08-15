@@ -6,29 +6,31 @@
 
 //! Async Engine
 #include "Result.h"
-#include "TCPSocket.h"
-#include "EventLoop.h"
 #include "AsyncFdIO.h"
 
 namespace AsyncIO
 {
     class EventLoop;
-    class TCPClientSocket
+
+    class TerminalIO
     {
     public:
-        static std::pair<Result, TCPClientSocket> Create(EventLoop *);
-        static TCPClientSocket Create(EventLoop *, SocketInfo);
+        enum class TerminalType
+        {
+            STDIN,
+            STDOUT,
+            STDERR,
+        };
+        TerminalIO(TerminalType, EventLoop *);
 
-        Result Connect(unsigned int port);
-        void Write(const char *buffer, unsigned int);
+        void Write(char *buffer, unsigned int);
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
         int GetID();
         void Close();
 
     private:
-        TCPClientSocket(EventLoop *);
-        SocketInfo m_oSocketInfo;
+        TerminalType m_eType;
         AsyncFdIO m_oAsyncFDIO;
     };
 }

@@ -18,7 +18,7 @@ namespace AsyncIO
         AsyncFdIO(EventLoop *);
         void SetFD(int);
 
-        void Write(char *buffer, unsigned int);
+        void Write(const char *buffer, unsigned int);
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
         int GetID();

@@ -5,28 +5,34 @@
 
 #include "EventLoop.h"
 #include "TCPClientSocket.h"
+#include "TerminalIO.h"
+#include "Events.h"
 
 int main()
 {
     AsyncIO::EventLoop loop;
     AsyncIO::TCPClientSocket socket = AsyncIO::TCPClientSocket::Create(&loop).second;
+    AsyncIO::TerminalIO terminal(AsyncIO::TerminalIO::TerminalType::STDIN, &loop);
+
+    auto onSocketRead = [&](char *buffer, unsigned int size)
+    {
+        std::string_view slice(buffer, size);
+        std::cout << "Recieved message from server " << slice << std::endl;
+    };
+    socket.OnRead(std::move(onSocketRead));
+
+    auto onTerminalRead = [&](char *buffer, unsigned int size)
+    {
+        std::string_view slice(buffer, size);
+        socket.Write(slice.data(), size);
+    };
+    terminal.OnRead(std::move(onTerminalRead));
 
     if (!socket.Connect(8080).success)
     {
         std::cerr << "client failed to connect " << std::endl;
+        return -1;
     }
-    else
-    {
-        std::cout << "Client connect successfully " << std::endl;
 
-        constexpr std::size_t size = 1024;
-        char buffer[size] = "hello world";
-        write(socket.GetID(), buffer, size);
-        std::cout << "Client wrote message successfully " << std::endl;
-
-        char readBuffer[size];
-        std::memset(readBuffer, 0, size);
-        int readSize = read(socket.GetID(), readBuffer, size);
-        std::cout << "Recieved Message / Echo " << readSize << " == " << readBuffer << std::endl;
-    }
+    loop.Run();
 }

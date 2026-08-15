@@ -10,3 +10,4 @@ AddToLibraryPath src/lib/socket
 AddToLibraryPath src/lib/AsyncEngine
 AddToLibraryPath src/lib/Helpers
 AddToLibraryPath src/lib/Threads
+AddToLibraryPath src/lib/Terminal
