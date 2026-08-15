@@ -19,6 +19,7 @@ std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::C
     }
     AsyncIO::TCPClientSocket oSocket{p_pEventLoop};
     oSocket.m_oSocketInfo = socketCreationResult.second;
+    oSocket.m_oAsyncFDIO.SetFD(oSocket.m_oSocketInfo.fd);
 
     //! TODO: WHY DOES THIS MAKE CLIENT Connect return -1
     // if (!AsyncIO::MakeNonBlocking(oSocket.m_oSocketInfo.fd))
@@ -39,6 +40,7 @@ AsyncIO::TCPClientSocket AsyncIO::TCPClientSocket::Create(EventLoop *p_pEventLoo
 {
     AsyncIO::TCPClientSocket clientSocket{p_pEventLoop};
     clientSocket.m_oSocketInfo = std::move(socketInfo);
+    clientSocket.m_oAsyncFDIO.SetFD(clientSocket.m_oSocketInfo.fd);
     return clientSocket;
 }
 
@@ -65,99 +67,30 @@ AsyncIO::Result AsyncIO::TCPClientSocket::Connect(unsigned int port)
 
 void AsyncIO::TCPClientSocket::Write(char *buffer, unsigned int size)
 {
-    int writtenBytes = write(GetID(), buffer, size);
-    if (writtenBytes == -1)
-    {
-        throw std::runtime_error("[NOT-Implemented] Socket Write buffer is full, cannot write right now");
-    }
-    else
-    {
-        if (writtenBytes != size)
-        {
-            throw std::runtime_error("[FATAL]: not all bytes got written");
-        }
-    }
-}
-
-void AsyncIO::TCPClientSocket::HandleClientSocketReady(AsyncIO::EventContext ctx)
-{
-    if (AsyncIO::PollHelpers::IsEventSet(ctx.readyEvents, POLLHUP))
-    {
-        HandleClose();
-    }
-    else if (AsyncIO::PollHelpers::IsEventSet(ctx.readyEvents, POLLIN))
-    {
-        HandleClientDataReady();
-    }
-    else if (AsyncIO::PollHelpers::IsEventSet(ctx.readyEvents, POLLOUT))
-    {
-        throw std::runtime_error("[NOT-Implemented] Client socket space available");
-        //! TODO:
-        // HandleClientSpaceAvailable(ctx.readyEvents);
-    }
-}
-
-void AsyncIO::TCPClientSocket::HandleClientDataReady()
-{
-    unsigned int size = 1024;
-    char buffer[size];
-    int readBytes = read(GetID(), buffer, size);
-    if (readBytes == -1)
-    {
-        throw std::runtime_error("[FATAL]: Error In Reading Client Bytes for socket FD " + std::to_string(GetID()));
-    }
-    else if (readBytes == 0)
-    {
-        throw std::runtime_error("[FATAL]: connection closed by socket.read which is unxpected, event loop handle it with higher priority than read!");
-    }
-    if (m_fOnReadHandler)
-    {
-        m_fOnReadHandler(buffer, readBytes);
-    }
-}
-
-void AsyncIO::TCPClientSocket::HandleClose()
-{
-    m_pEventLoop->UnRegisterFromAllEvents(GetID());
-    if (m_fOnCloseHandler)
-    {
-        m_fOnCloseHandler();
-    }
+    m_oAsyncFDIO.Write(buffer, size);
 }
 
 void AsyncIO::TCPClientSocket::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)
 {
-    SetupWithEventLoop();
-    m_fOnReadHandler = std::move(p_fOnReadCallback);
+    m_oAsyncFDIO.OnRead(std::move(p_fOnReadCallback));
 }
 
 void AsyncIO::TCPClientSocket::OnClose(std::function<void(void)> p_fOnCloseCallback)
 {
-    SetupWithEventLoop();
-    m_fOnCloseHandler = std::move(p_fOnCloseCallback);
-}
-
-void AsyncIO::TCPClientSocket::SetupWithEventLoop()
-{
-    if (!m_bSetUp)
-    {
-        m_pEventLoop->SubScribeToEvent(GetID(), AsyncIO::EventType::Read, [this](AsyncIO::EventContext ctx)
-                                       { HandleClientSocketReady(ctx); });
-        m_bSetUp = true;
-    }
+    m_oAsyncFDIO.OnClose(std::move(p_fOnCloseCallback));
 }
 
 int AsyncIO::TCPClientSocket::GetID()
 {
-    return m_oSocketInfo.fd;
+    return m_oAsyncFDIO.GetID();
 }
 
 AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::EventLoop *p_pEventLoop)
+    : m_oAsyncFDIO(p_pEventLoop)
 {
-    m_pEventLoop = p_pEventLoop;
 }
 
 void AsyncIO::TCPClientSocket::Close()
 {
-    close(GetID());
+    m_oAsyncFDIO.Close();
 }
