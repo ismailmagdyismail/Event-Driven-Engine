@@ -21,14 +21,6 @@ std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::C
     AsyncIO::TCPClientSocket oSocket{p_pEventLoop};
     oSocket.m_oSocketInfo = socketCreationResult.second;
     oSocket.m_oAsyncFDIO.SetFD(oSocket.m_oSocketInfo.fd);
-
-    if (!AsyncIO::MakeNonBlocking(oSocket.m_oSocketInfo.fd))
-    {
-        result.success = false;
-        result.message = "Failed to make Server Socket Non Blocking";
-        return {result, AsyncIO::TCPClientSocket{nullptr}};
-    }
-
     result.success = true;
     return {
         result,

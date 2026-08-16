@@ -14,6 +14,7 @@ AsyncIO::AsyncFdIO::AsyncFdIO(EventLoop *p_pEventLoop) : m_pEventLoop(p_pEventLo
 void AsyncIO::AsyncFdIO::SetFD(int fd)
 {
     m_iFD = fd;
+    AsyncIO::MakeNonBlocking(m_iFD);
 }
 
 void AsyncIO::AsyncFdIO::Write(const char *buffer, unsigned int size)
