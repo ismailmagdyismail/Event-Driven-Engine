@@ -3,6 +3,7 @@
 //! System Includes
 #include <utility>
 #include <functional>
+#include <memory>
 
 //! Async Engine
 #include "Result.h"
@@ -13,11 +14,19 @@
 namespace AsyncIO
 {
     class EventLoop;
+    class TCPServerSocket;
     class TCPClientSocket
     {
     public:
+        TCPClientSocket(EventLoop *);
+        TCPClientSocket(EventLoop *, SocketInfo);
         static std::pair<Result, TCPClientSocket> Create(EventLoop *);
         static TCPClientSocket Create(EventLoop *, SocketInfo);
+
+        TCPClientSocket(const TCPClientSocket &) = delete;
+        TCPClientSocket &operator=(const TCPClientSocket &) = delete;
+        TCPClientSocket(TCPClientSocket &&) = delete;
+        TCPClientSocket &operator=(TCPClientSocket &&) = delete;
 
         Result Connect(unsigned int port);
         void Write(const char *buffer, unsigned int);
@@ -27,7 +36,6 @@ namespace AsyncIO
         void Close();
 
     private:
-        TCPClientSocket(EventLoop *);
         SocketInfo m_oSocketInfo;
         AsyncFdIO m_oAsyncFDIO;
     };

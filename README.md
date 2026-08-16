@@ -28,7 +28,8 @@
 
     //! setup event loop, wire it up with async FDs / sockets
     AsyncIO::EventLoop loop;
-    AsyncIO::TCPServerSocket serverSocket = AsyncIO::TCPServerSocket::Create(&loop).second;
+    auto serverSocketCreation = AsyncIO::TCPServerSocket::Create(&loop);
+    AsyncIO::TCPServerSocket &serverSocket = serverSocketCreation.second;
 
     int port = 8080;
     auto listenResult = serverSocket.Listen(port);
@@ -46,7 +47,8 @@
     =============================================================================
     */
     AsyncIO::EventLoop loop;
-    AsyncIO::TCPClientSocket socket = AsyncIO::TCPClientSocket::Create(&loop).second;
+    auto socketCreation = AsyncIO::TCPClientSocket::Create(&loop);
+    AsyncIO::TCPClientSocket &socket = socketCreation.second;
     AsyncIO::TerminalIO terminal(AsyncIO::TerminalIO::TerminalType::STDIN, &loop);
 
     socket.OnRead(std::move(onSocketRead));

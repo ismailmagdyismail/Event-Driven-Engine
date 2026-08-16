@@ -16,6 +16,13 @@ namespace AsyncIO
     {
     public:
         AsyncFdIO(EventLoop *);
+        ~AsyncFdIO();
+
+        AsyncFdIO(const AsyncFdIO &) = delete;
+        AsyncFdIO &operator=(const AsyncFdIO &) = delete;
+        AsyncFdIO(AsyncFdIO &&) = delete;
+        AsyncFdIO &operator=(AsyncFdIO &&) = delete;
+
         void SetFD(int);
 
         void Write(const char *buffer, unsigned int);
@@ -25,16 +32,13 @@ namespace AsyncIO
         void Close();
 
     private:
-        void SetupWithEventLoop();
-
         void HandleEventReady(EventContext ctx);
         void HandleClose();
         void HandleDataReady();
 
         std::function<void(void)> m_fOnCloseHandler{nullptr};
         std::function<void(char *, unsigned int)> m_fOnReadHandler{nullptr};
-        bool m_bSetUp{false};
-        int m_iFD;
-        EventLoop *m_pEventLoop;
+        int m_iFD{-1};
+        EventLoop *m_pEventLoop{nullptr};
     };
 }

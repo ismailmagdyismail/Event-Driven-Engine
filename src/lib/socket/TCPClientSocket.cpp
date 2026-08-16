@@ -1,6 +1,7 @@
 //! System Includes
 #include <unistd.h>
 #include <errno.h>
+#include <tuple>
 
 //! Async Engine
 #include "TCPClientSocket.h"
@@ -16,24 +17,23 @@ std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::C
     {
         result.success = false;
         result.message = "Failed To Create Server Socket";
-        return {result, AsyncIO::TCPClientSocket{nullptr}};
+        return std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket>{
+            std::piecewise_construct,
+            std::forward_as_tuple(result),
+            std::forward_as_tuple(nullptr),
+        };
     }
-    AsyncIO::TCPClientSocket oSocket{p_pEventLoop};
-    oSocket.m_oSocketInfo = socketCreationResult.second;
-    oSocket.m_oAsyncFDIO.SetFD(oSocket.m_oSocketInfo.fd);
     result.success = true;
-    return {
-        result,
-        oSocket,
+    return std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket>{
+        std::piecewise_construct,
+        std::forward_as_tuple(result),
+        std::forward_as_tuple(p_pEventLoop, socketCreationResult.second),
     };
 }
 
 AsyncIO::TCPClientSocket AsyncIO::TCPClientSocket::Create(EventLoop *p_pEventLoop, SocketInfo socketInfo)
 {
-    AsyncIO::TCPClientSocket clientSocket{p_pEventLoop};
-    clientSocket.m_oSocketInfo = std::move(socketInfo);
-    clientSocket.m_oAsyncFDIO.SetFD(clientSocket.m_oSocketInfo.fd);
-    return clientSocket;
+    return AsyncIO::TCPClientSocket{p_pEventLoop, socketInfo};
 }
 
 AsyncIO::Result AsyncIO::TCPClientSocket::Connect(unsigned int port)
@@ -80,6 +80,12 @@ int AsyncIO::TCPClientSocket::GetID()
 AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::EventLoop *p_pEventLoop)
     : m_oAsyncFDIO(p_pEventLoop)
 {
+}
+
+AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::EventLoop *p_pEventLoop, AsyncIO::SocketInfo socketInfo)
+    : m_oSocketInfo(socketInfo), m_oAsyncFDIO(p_pEventLoop)
+{
+    m_oAsyncFDIO.SetFD(m_oSocketInfo.fd);
 }
 
 void AsyncIO::TCPClientSocket::Close()

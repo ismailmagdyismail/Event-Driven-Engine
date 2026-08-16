@@ -12,7 +12,8 @@
 #include "Events.h"
 
 AsyncIO::EventLoop loop;
-AsyncIO::TCPServerSocket serverSocket = AsyncIO::TCPServerSocket::Create(&loop).second;
+auto serverSocketCreation = AsyncIO::TCPServerSocket::Create(&loop);
+AsyncIO::TCPServerSocket &serverSocket = serverSocketCreation.second;
 std::unordered_map<unsigned int, std::unique_ptr<AsyncIO::TCPClientSocket>> activeConnections;
 
 void EchoBack(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)

@@ -11,7 +11,8 @@
 int main()
 {
     AsyncIO::EventLoop loop;
-    AsyncIO::TCPClientSocket socket = AsyncIO::TCPClientSocket::Create(&loop).second;
+    auto socketCreation = AsyncIO::TCPClientSocket::Create(&loop);
+    AsyncIO::TCPClientSocket &socket = socketCreation.second;
     AsyncIO::TerminalIO terminal(AsyncIO::TerminalIO::TerminalType::STDIN, &loop);
 
     auto onSocketRead = [&](char *buffer, unsigned int size)

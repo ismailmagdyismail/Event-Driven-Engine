@@ -15,6 +15,8 @@ void AsyncIO::AsyncFdIO::SetFD(int fd)
 {
     m_iFD = fd;
     AsyncIO::MakeNonBlocking(m_iFD);
+    m_pEventLoop->SubScribeToEvent(GetID(), AsyncIO::EventType::Read | AsyncIO::EventType::CLOSE, [this](AsyncIO::EventContext ctx)
+                                   { HandleEventReady(ctx); });
 }
 
 void AsyncIO::AsyncFdIO::Write(const char *buffer, unsigned int size)
@@ -70,7 +72,7 @@ void AsyncIO::AsyncFdIO::HandleDataReady()
 
 void AsyncIO::AsyncFdIO::HandleClose()
 {
-    m_pEventLoop->UnRegisterFromAllEvents(GetID());
+    Close();
     if (m_fOnCloseHandler)
     {
         m_fOnCloseHandler();
@@ -79,24 +81,12 @@ void AsyncIO::AsyncFdIO::HandleClose()
 
 void AsyncIO::AsyncFdIO::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)
 {
-    SetupWithEventLoop();
     m_fOnReadHandler = std::move(p_fOnReadCallback);
 }
 
 void AsyncIO::AsyncFdIO::OnClose(std::function<void(void)> p_fOnCloseCallback)
 {
-    SetupWithEventLoop();
     m_fOnCloseHandler = std::move(p_fOnCloseCallback);
-}
-
-void AsyncIO::AsyncFdIO::SetupWithEventLoop()
-{
-    if (!m_bSetUp)
-    {
-        m_pEventLoop->SubScribeToEvent(GetID(), AsyncIO::EventType::Read, [this](AsyncIO::EventContext ctx)
-                                       { HandleEventReady(ctx); });
-        m_bSetUp = true;
-    }
 }
 
 int AsyncIO::AsyncFdIO::GetID()
@@ -106,5 +96,11 @@ int AsyncIO::AsyncFdIO::GetID()
 
 void AsyncIO::AsyncFdIO::Close()
 {
+    m_pEventLoop->UnRegisterFromAllEvents(GetID());
     close(GetID());
+}
+
+AsyncIO::AsyncFdIO::~AsyncFdIO()
+{
+    Close();
 }

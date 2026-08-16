@@ -1,6 +1,7 @@
 //! System Includes
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <tuple>
 
 //! Async Engine
 #include "TCPServerSocket.h"
@@ -17,29 +18,42 @@ std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::C
     {
         result.success = false;
         result.message = "Failed To Create Server Socket";
-        return {result, AsyncIO::TCPServerSocket{nullptr}};
+        return std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket>{
+            std::piecewise_construct,
+            std::forward_as_tuple(result),
+            std::forward_as_tuple(nullptr),
+        };
     }
-    AsyncIO::TCPServerSocket oSocket{p_pEventLoop};
-    oSocket.m_oSocketData = socketCreationResult.second;
 
     // 2. make it non blocking so reads, writes (if buffers are full) don't block caller threads.
-    if (!AsyncIO::MakeNonBlocking(oSocket.m_oSocketData.fd))
+    if (!AsyncIO::MakeNonBlocking(socketCreationResult.second.fd))
     {
+        close(socketCreationResult.second.fd);
         result.success = false;
         result.message = "Failed to make Server Socket Non Blocking";
-        return {result, AsyncIO::TCPServerSocket{nullptr}};
+        return std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket>{
+            std::piecewise_construct,
+            std::forward_as_tuple(result),
+            std::forward_as_tuple(nullptr),
+        };
     }
 
     result.success = true;
-    return {
-        result,
-        oSocket,
+    return std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket>{
+        std::piecewise_construct,
+        std::forward_as_tuple(result),
+        std::forward_as_tuple(p_pEventLoop, socketCreationResult.second),
     };
 }
 
 AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::EventLoop *p_pEventloop)
 {
     m_pEventLoop = p_pEventloop;
+}
+
+AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::EventLoop *p_pEventloop, AsyncIO::SocketInfo socketInfo)
+    : m_oSocketData(socketInfo), m_pEventLoop(p_pEventloop)
+{
 }
 
 AsyncIO::Result AsyncIO::TCPServerSocket::Listen(unsigned int port)
@@ -105,7 +119,7 @@ void AsyncIO::TCPServerSocket::OnAccept(std::function<void(std::unique_ptr<Async
         AsyncIO::SocketInfo sockInfo{
             .fd = result.second.fd,
         };
-        std::unique_ptr<AsyncIO::TCPClientSocket> clientSocket = std::make_unique<AsyncIO::TCPClientSocket>(AsyncIO::TCPClientSocket::Create(m_pEventLoop, sockInfo));
+        std::unique_ptr<AsyncIO::TCPClientSocket> clientSocket{new AsyncIO::TCPClientSocket(m_pEventLoop, sockInfo)};
         onAccCallback(std::move(clientSocket));
     };
 
@@ -119,5 +133,11 @@ int AsyncIO::TCPServerSocket::GetID()
 
 void AsyncIO::TCPServerSocket::Close()
 {
+    m_pEventLoop->UnRegisterFromAllEvents(GetID());
     close(GetID());
+}
+
+AsyncIO::TCPServerSocket::~TCPServerSocket()
+{
+    Close();
 }
