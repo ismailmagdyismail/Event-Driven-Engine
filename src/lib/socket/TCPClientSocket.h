@@ -29,7 +29,7 @@ namespace AsyncIO
         TCPClientSocket &operator=(TCPClientSocket &&) = delete;
 
         Result Connect(unsigned int port);
-        void Write(const char *buffer, unsigned int);
+        void WriteAll(const char *buffer, unsigned int);
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
         int GetID();

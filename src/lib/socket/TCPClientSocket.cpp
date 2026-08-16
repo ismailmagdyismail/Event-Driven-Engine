@@ -57,9 +57,9 @@ AsyncIO::Result AsyncIO::TCPClientSocket::Connect(unsigned int port)
     };
 }
 
-void AsyncIO::TCPClientSocket::Write(const char *buffer, unsigned int size)
+void AsyncIO::TCPClientSocket::WriteAll(const char *buffer, unsigned int size)
 {
-    m_oAsyncFDIO.Write(buffer, size);
+    m_oAsyncFDIO.WriteAll(buffer, size);
 }
 
 void AsyncIO::TCPClientSocket::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)

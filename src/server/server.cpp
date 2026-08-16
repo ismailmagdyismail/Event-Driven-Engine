@@ -15,16 +15,22 @@ AsyncIO::EventLoop loop;
 auto serverSocketCreation = AsyncIO::TCPServerSocket::Create(&loop);
 AsyncIO::TCPServerSocket &serverSocket = serverSocketCreation.second;
 std::unordered_map<unsigned int, std::unique_ptr<AsyncIO::TCPClientSocket>> activeConnections;
+int recievedCount = 0;
+int totalBytes = 0;
 
 void EchoBack(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)
 {
-    socket->Write(buffer, size);
+    socket->WriteAll(buffer, size);
 }
 
 void OnClientRead(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)
 {
     std::string_view slice(buffer, size);
+    ++recievedCount;
+    totalBytes += size;
     std::cerr << "read message from socket " << socket->GetID() << " message: " << slice << " with size = " << size << std::endl;
+    std::cerr << "segments recieved count " << recievedCount << std::endl;
+    std::cerr << "segments total bytes count " << totalBytes << std::endl;
     EchoBack(socket, buffer, size);
 }
 
