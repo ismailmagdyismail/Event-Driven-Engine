@@ -15,24 +15,57 @@ void AsyncIO::AsyncFdIO::SetFD(int fd)
 {
     m_iFD = fd;
     AsyncIO::MakeNonBlocking(m_iFD);
-    m_pEventLoop->SubScribeToEvent(GetID(), AsyncIO::EventType::Read | AsyncIO::EventType::CLOSE, [this](AsyncIO::EventContext ctx)
+    short eventsToSubTo = EventType::Read | EventType::CLOSE | EventType::WriteSpaceAvailable;
+    m_pEventLoop->SubScribeToEvent(GetID(), eventsToSubTo, [this](AsyncIO::EventContext ctx)
                                    { HandleEventReady(ctx); });
 }
 
-void AsyncIO::AsyncFdIO::Write(const char *buffer, unsigned int size)
+bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size)
 {
-    int writtenBytes = write(GetID(), buffer, size);
-    if (writtenBytes == -1)
+    //! Back pressure, caller should wait till space available
+    //! (could be done with CV)
+    if (m_pendingBuffer)
     {
-        throw std::runtime_error("[NOT-Implemented] Socket Write buffer is full, cannot write right now");
+        return false;
+    }
+    int uiWrittenBytes = write(GetID(), buffer, size);
+    if (uiWrittenBytes == -1)
+    {
+        throw std::runtime_error("[FATAL] couldn't send data to send buffer (connection may have been interrupted)?");
+    }
+    else if (uiWrittenBytes == size)
+    {
+        ResetPendingBuffer();
     }
     else
     {
-        if (writtenBytes != size)
-        {
-            throw std::runtime_error("[FATAL]: not all bytes got written");
-        }
+        m_pendingBuffer = buffer;
+        m_uiPendingBufferSize = size;
+        m_uiPendingBufferOffset = uiWrittenBytes;
     }
+    return true;
+}
+
+void AsyncIO::AsyncFdIO::WriteFromPendingBuffer()
+{
+    unsigned int uiSizeToWrite = m_uiPendingBufferSize - m_uiPendingBufferOffset;
+    int uiWrittenBytes = write(GetID(), m_pendingBuffer + m_uiPendingBufferOffset, uiSizeToWrite);
+
+    if (uiWrittenBytes == uiSizeToWrite)
+    {
+        ResetPendingBuffer();
+    }
+    else
+    {
+        m_uiPendingBufferOffset += uiWrittenBytes;
+    }
+}
+
+void AsyncIO::AsyncFdIO::ResetPendingBuffer()
+{
+    m_pendingBuffer = nullptr;
+    m_uiPendingBufferOffset = 0;
+    m_uiPendingBufferSize = 0;
 }
 
 void AsyncIO::AsyncFdIO::HandleEventReady(AsyncIO::EventContext ctx)
@@ -47,7 +80,14 @@ void AsyncIO::AsyncFdIO::HandleEventReady(AsyncIO::EventContext ctx)
     }
     else if (AsyncIO::PollHelpers::IsEventSet(ctx.readyEvents, EventType::WriteSpaceAvailable))
     {
-        throw std::runtime_error("[NOT-Implemented] Client socket space available");
+        // if (m_pendingBuffer == nullptr)
+        // {
+        //     throw("[FATAL]: corrupted scenario, trying to send remaining buffer, when no pending data is available");
+        // }
+        if (m_pendingBuffer)
+        {
+            WriteFromPendingBuffer();
+        }
     }
 }
 

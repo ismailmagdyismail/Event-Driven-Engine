@@ -23,7 +23,7 @@ namespace AsyncIO
         };
         TerminalIO(TerminalType, EventLoop *);
 
-        void Write(char *buffer, unsigned int);
+        void WriteAll(char *buffer, unsigned int);
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
         int GetID();

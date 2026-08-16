@@ -31,7 +31,9 @@ int main()
     auto onTerminalRead = [&](char *buffer, unsigned int size)
     {
         std::string_view slice(buffer, size);
-        socket.Write(slice.data(), size);
+        // std::string largeBuffer(1024 * 10000, 'x');
+        // std::cerr << "sent size " << largeBuffer.size() << std::endl;
+        socket.WriteAll(slice.data(), slice.size());
     };
     terminal.OnRead(std::move(onTerminalRead));
 

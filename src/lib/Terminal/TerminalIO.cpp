@@ -6,9 +6,9 @@ AsyncIO::TerminalIO::TerminalIO(AsyncIO::TerminalIO::TerminalType p_eType, Async
     m_oAsyncFDIO.SetFD(static_cast<int>(m_eType));
 }
 
-void AsyncIO::TerminalIO::Write(char *buffer, unsigned int size)
+void AsyncIO::TerminalIO::WriteAll(char *buffer, unsigned int size)
 {
-    m_oAsyncFDIO.Write(buffer, size);
+    m_oAsyncFDIO.WriteAll(buffer, size);
 }
 
 void AsyncIO::TerminalIO::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)
