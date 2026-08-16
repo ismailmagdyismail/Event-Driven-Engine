@@ -1,5 +1,6 @@
 //! System Includes
 #include <unistd.h>
+#include <errno.h>
 
 //! Async Engine
 #include "TCPClientSocket.h"
@@ -21,13 +22,12 @@ std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::C
     oSocket.m_oSocketInfo = socketCreationResult.second;
     oSocket.m_oAsyncFDIO.SetFD(oSocket.m_oSocketInfo.fd);
 
-    //! TODO: WHY DOES THIS MAKE CLIENT Connect return -1
-    // if (!AsyncIO::MakeNonBlocking(oSocket.m_oSocketInfo.fd))
-    // {
-    //     result.success = false;
-    //     result.message = "Failed to make Server Socket Non Blocking";
-    //     return {result, AsyncIO::TCPClientSocket{}};
-    // }
+    if (!AsyncIO::MakeNonBlocking(oSocket.m_oSocketInfo.fd))
+    {
+        result.success = false;
+        result.message = "Failed to make Server Socket Non Blocking";
+        return {result, AsyncIO::TCPClientSocket{nullptr}};
+    }
 
     result.success = true;
     return {
@@ -52,7 +52,7 @@ AsyncIO::Result AsyncIO::TCPClientSocket::Connect(unsigned int port)
     address.sin_addr.s_addr = INADDR_ANY;
 
     int connectionStatus = connect(m_oSocketInfo.fd, reinterpret_cast<sockaddr *>(&address), sizeof(address));
-    if (connectionStatus == -1)
+    if (connectionStatus == -1 && errno != EINPROGRESS)
     {
         return Result{
             .success = false,
