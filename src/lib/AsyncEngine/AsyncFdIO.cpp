@@ -20,7 +20,7 @@ void AsyncIO::AsyncFdIO::SetFD(int fd)
                                    { HandleEventReady(ctx); });
 }
 
-bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size)
+bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size, std::function<void(void)> p_fOnCompletion)
 {
     //! Back pressure, caller should wait till space available
     //! (could be done with CV)
@@ -28,6 +28,7 @@ bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size)
     {
         return false;
     }
+    m_fOnWriteComplete = std::move(p_fOnCompletion);
     int uiWrittenBytes = write(GetID(), buffer, size);
     if (uiWrittenBytes == -1)
     {
@@ -35,8 +36,7 @@ bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size)
     }
     else if (uiWrittenBytes == size)
     {
-        //! Delete at once, since no buffering.
-        delete[] buffer;
+        p_fOnCompletion();
         ResetPendingBuffer();
     }
     else
@@ -55,7 +55,7 @@ void AsyncIO::AsyncFdIO::WriteFromPendingBuffer()
 
     if (uiWrittenBytes == uiSizeToWrite)
     {
-        delete[] m_pendingBuffer;
+        m_fOnWriteComplete();
         ResetPendingBuffer();
     }
     else
@@ -66,6 +66,7 @@ void AsyncIO::AsyncFdIO::WriteFromPendingBuffer()
 
 void AsyncIO::AsyncFdIO::ResetPendingBuffer()
 {
+    m_fOnWriteComplete = nullptr;
     m_pendingBuffer = nullptr;
     m_uiPendingBufferOffset = 0;
     m_uiPendingBufferSize = 0;
@@ -145,10 +146,5 @@ void AsyncIO::AsyncFdIO::Close()
 
 AsyncIO::AsyncFdIO::~AsyncFdIO()
 {
-    if (m_pendingBuffer)
-    {
-        delete[] m_pendingBuffer;
-        ResetPendingBuffer();
-    }
     Close();
 }

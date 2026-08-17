@@ -30,10 +30,7 @@ int main()
 
     auto onTerminalRead = [&](char *buffer, unsigned int size)
     {
-        char *bufferCpy = new char[size];
-        std::memcpy(bufferCpy, buffer, size);
-        socket.WriteAll(bufferCpy, size);
-        // std::string_view slice(buffer, size);
+        socket.WriteAll(buffer, size);
         // std::string largeBuffer(1024 * 10000, 'x');
         // std::cerr << "sent size " << largeBuffer.size() << std::endl;
     };
