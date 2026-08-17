@@ -1,7 +1,5 @@
 # TODO:
 
-- handling huge reads, writes
-- Create Chat-TUI example
 - add threading and RCU | COW
 - add thread pool
 
