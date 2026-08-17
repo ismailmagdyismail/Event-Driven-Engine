@@ -20,7 +20,9 @@ int totalBytes = 0;
 
 void EchoBack(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)
 {
-    socket->WriteAll(buffer, size);
+    char *bufferCpy = new char[size];
+    std::memcpy(bufferCpy, buffer, size);
+    socket->WriteAll(bufferCpy, size);
 }
 
 void OnClientRead(AsyncIO::TCPClientSocket *socket, char *buffer, unsigned int size)

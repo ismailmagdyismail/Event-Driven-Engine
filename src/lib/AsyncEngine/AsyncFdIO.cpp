@@ -35,6 +35,8 @@ bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size)
     }
     else if (uiWrittenBytes == size)
     {
+        //! Delete at once, since no buffering.
+        delete[] buffer;
         ResetPendingBuffer();
     }
     else
@@ -53,6 +55,7 @@ void AsyncIO::AsyncFdIO::WriteFromPendingBuffer()
 
     if (uiWrittenBytes == uiSizeToWrite)
     {
+        delete[] m_pendingBuffer;
         ResetPendingBuffer();
     }
     else
@@ -142,5 +145,10 @@ void AsyncIO::AsyncFdIO::Close()
 
 AsyncIO::AsyncFdIO::~AsyncFdIO()
 {
+    if (m_pendingBuffer)
+    {
+        delete[] m_pendingBuffer;
+        ResetPendingBuffer();
+    }
     Close();
 }
