@@ -22,6 +22,7 @@ void AsyncIO::AsyncFdIO::SetFD(int fd)
 
 bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size, std::function<void(void)> p_fOnCompletion)
 {
+    //! TODO: differntiate between backpressure, and connection interrupted status code to know what to retry and what not
     //! Back pressure, caller should wait till space available
     //! (could be done with CV)
     if (m_pendingBuffer)
@@ -29,12 +30,19 @@ bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size, std::fu
         return false;
     }
     m_fOnWriteComplete = std::move(p_fOnCompletion);
-    int uiWrittenBytes = write(GetID(), buffer, size);
-    if (uiWrittenBytes == -1)
+    int iWrittenBytes = write(GetID(), buffer, size);
+    if (ConnectionInterrupted(iWrittenBytes, errno))
     {
-        throw std::runtime_error("[FATAL] couldn't send data to send buffer (connection may have been interrupted)?");
+        ResetPendingBuffer();
+        throw std::runtime_error("[FATAL] couldn't send data to send buffer (connection may have been interrupted)? " + std::to_string(errno));
     }
-    else if (uiWrittenBytes == size)
+    else if (BackPressure(iWrittenBytes, errno))
+    {
+        m_pendingBuffer = buffer;
+        m_uiPendingBufferSize = size;
+        m_uiPendingBufferOffset = 0;
+    }
+    else if (iWrittenBytes == size)
     {
         p_fOnCompletion();
         ResetPendingBuffer();
@@ -43,7 +51,7 @@ bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size, std::fu
     {
         m_pendingBuffer = buffer;
         m_uiPendingBufferSize = size;
-        m_uiPendingBufferOffset = uiWrittenBytes;
+        m_uiPendingBufferOffset = iWrittenBytes;
     }
     return true;
 }
@@ -51,17 +59,36 @@ bool AsyncIO::AsyncFdIO::WriteAll(const char *buffer, unsigned int size, std::fu
 void AsyncIO::AsyncFdIO::WriteFromPendingBuffer()
 {
     unsigned int uiSizeToWrite = m_uiPendingBufferSize - m_uiPendingBufferOffset;
-    int uiWrittenBytes = write(GetID(), m_pendingBuffer + m_uiPendingBufferOffset, uiSizeToWrite);
-
-    if (uiWrittenBytes == uiSizeToWrite)
+    int iWrittenBytes = write(GetID(), m_pendingBuffer + m_uiPendingBufferOffset, uiSizeToWrite);
+    if (ConnectionInterrupted(iWrittenBytes, errno))
+    {
+        ResetPendingBuffer();
+        throw std::runtime_error("[FATAL] couldn't send data to send buffer (connection may have been interrupted)? " + std::to_string(errno));
+        return;
+    }
+    else if (BackPressure(iWrittenBytes, errno))
+    {
+        return;
+    }
+    if (iWrittenBytes == uiSizeToWrite)
     {
         m_fOnWriteComplete();
         ResetPendingBuffer();
     }
     else
     {
-        m_uiPendingBufferOffset += uiWrittenBytes;
+        m_uiPendingBufferOffset += iWrittenBytes;
     }
+}
+
+bool AsyncIO::AsyncFdIO::ConnectionInterrupted(int iWrittenBytes, int errcode)
+{
+    return iWrittenBytes == -1 && errcode != EAGAIN;
+}
+
+bool AsyncIO::AsyncFdIO::BackPressure(int iWrittenBytes, int errcode)
+{
+    return iWrittenBytes == -1 && errcode == EAGAIN;
 }
 
 void AsyncIO::AsyncFdIO::ResetPendingBuffer()
@@ -140,8 +167,13 @@ int AsyncIO::AsyncFdIO::GetID()
 
 void AsyncIO::AsyncFdIO::Close()
 {
+    if (m_iFD == -1)
+    {
+        return;
+    }
     m_pEventLoop->UnRegisterFromAllEvents(GetID());
     close(GetID());
+    m_iFD = -1;
 }
 
 AsyncIO::AsyncFdIO::~AsyncFdIO()

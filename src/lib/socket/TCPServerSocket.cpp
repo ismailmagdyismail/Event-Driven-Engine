@@ -133,6 +133,11 @@ int AsyncIO::TCPServerSocket::GetID()
 
 void AsyncIO::TCPServerSocket::Close()
 {
+    if (m_oSocketData.fd == -1)
+    {
+        return;
+    }
+    m_oSocketData.fd = -1;
     m_pEventLoop->UnRegisterFromAllEvents(GetID());
     close(GetID());
 }

@@ -37,6 +37,8 @@ namespace AsyncIO
         void HandleEventReady(EventContext ctx);
         void HandleClose();
         void HandleDataReady();
+        bool ConnectionInterrupted(int writtenBytes, int errcode);
+        bool BackPressure(int writtenBytes, int errcode);
 
         const char *m_pendingBuffer{nullptr};
         unsigned int m_uiPendingBufferSize{0};
