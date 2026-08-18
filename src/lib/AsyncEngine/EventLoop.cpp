@@ -14,6 +14,11 @@ AsyncIO::EventLoop::EventLoop() : m_oRequestQueue(1000)
     m_bRunning.store(false, std::memory_order_relaxed);
 }
 
+void AsyncIO::EventLoop::AddMainTask(std::function<void(void)> p_fMainTask)
+{
+    m_fMainTask = std::move(p_fMainTask);
+}
+
 AsyncIO::Result AsyncIO::EventLoop::Run()
 {
     m_bRunning.store(true, std::memory_order_relaxed);
@@ -56,6 +61,10 @@ AsyncIO::Result AsyncIO::EventLoop::Run()
                     .readyEvents = m_oRegistery.m_vecMonitoredFDs[i].revents,
                 });
             }
+        }
+        if (m_fMainTask)
+        {
+            m_fMainTask();
         }
         std::this_thread::yield();
     }
