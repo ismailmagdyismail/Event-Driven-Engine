@@ -23,7 +23,7 @@ namespace AsyncIO
         AsyncFdIO(AsyncFdIO &&) = delete;
         AsyncFdIO &operator=(AsyncFdIO &&) = delete;
 
-        void SetFD(int);
+        void SetFD(int, short flagsToSubTo);
 
         bool WriteAll(const char *buffer, unsigned int, std::function<void(void)> p_fOnCompletion = []() {});
         void OnRead(std::function<void(char *, unsigned int)>);

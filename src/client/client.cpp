@@ -13,7 +13,7 @@ int main()
     AsyncIO::EventLoop loop;
     auto socketCreation = AsyncIO::TCPClientSocket::Create(&loop);
     AsyncIO::TCPClientSocket &socket = socketCreation.second;
-    AsyncIO::TerminalIO terminal(AsyncIO::TerminalIO::TerminalType::STDIN, &loop);
+    AsyncIO::TerminalIO terminal(&loop);
 
     auto onSocketRead = [&](char *buffer, unsigned int size)
     {

@@ -11,12 +11,11 @@ AsyncIO::AsyncFdIO::AsyncFdIO(EventLoop *p_pEventLoop) : m_pEventLoop(p_pEventLo
 {
 }
 
-void AsyncIO::AsyncFdIO::SetFD(int fd)
+void AsyncIO::AsyncFdIO::SetFD(int fd, short flagsToSubTo)
 {
     m_iFD = fd;
     AsyncIO::MakeNonBlocking(m_iFD);
-    short eventsToSubTo = EventType::Read | EventType::CLOSE | EventType::WriteSpaceAvailable;
-    m_pEventLoop->SubScribeToEvent(GetID(), eventsToSubTo, [this](AsyncIO::EventContext ctx)
+    m_pEventLoop->SubScribeToEvent(GetID(), flagsToSubTo, [this](AsyncIO::EventContext ctx)
                                    { HandleEventReady(ctx); });
 }
 

@@ -1,32 +1,34 @@
 #include "TerminalIO.h"
+#include "Events.h"
 
-AsyncIO::TerminalIO::TerminalIO(AsyncIO::TerminalIO::TerminalType p_eType, AsyncIO::EventLoop *p_pLoop)
-    : m_eType(p_eType), m_oAsyncFDIO(p_pLoop)
+#include <unistd.h>
+
+AsyncIO::TerminalIO::TerminalIO(EventLoop *p_pLoop)
+    : m_oStdIn(p_pLoop),
+      m_oStdOut(p_pLoop)
 {
-    m_oAsyncFDIO.SetFD(static_cast<int>(m_eType));
+    m_oStdIn.SetFD(STDIN_FILENO, EventType::Read);
+    m_oStdOut.SetFD(STDOUT_FILENO, EventType::CLOSE | EventType::WriteSpaceAvailable);
 }
 
 bool AsyncIO::TerminalIO::WriteAll(char *buffer, unsigned int size, std::function<void(void)> p_fOnCompletion)
 {
-    return m_oAsyncFDIO.WriteAll(buffer, size, std::move(p_fOnCompletion));
+    return m_oStdOut.WriteAll(buffer, size, std::move(p_fOnCompletion));
 }
 
 void AsyncIO::TerminalIO::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)
 {
-    m_oAsyncFDIO.OnRead(p_fOnReadCallback);
+    m_oStdIn.OnRead(std::move(p_fOnReadCallback));
 }
 
 void AsyncIO::TerminalIO::OnClose(std::function<void(void)> p_fOnCloseCallback)
 {
-    m_oAsyncFDIO.OnClose(std::move(p_fOnCloseCallback));
-}
-
-int AsyncIO::TerminalIO::GetID()
-{
-    return m_oAsyncFDIO.GetID();
+    // Terminal close events are generally associated with stdin.
+    m_oStdIn.OnClose(std::move(p_fOnCloseCallback));
 }
 
 void AsyncIO::TerminalIO::Close()
 {
-    m_oAsyncFDIO.Close();
+    m_oStdIn.Close();
+    m_oStdOut.Close();
 }

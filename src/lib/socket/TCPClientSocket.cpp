@@ -85,7 +85,8 @@ AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::EventLoop *p_pEventLoop)
 AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::EventLoop *p_pEventLoop, AsyncIO::SocketInfo socketInfo)
     : m_oSocketInfo(socketInfo), m_oAsyncFDIO(p_pEventLoop)
 {
-    m_oAsyncFDIO.SetFD(m_oSocketInfo.fd);
+    short eventsToSubTo = EventType::Read | EventType::CLOSE | EventType::WriteSpaceAvailable;
+    m_oAsyncFDIO.SetFD(m_oSocketInfo.fd, eventsToSubTo);
 }
 
 void AsyncIO::TCPClientSocket::Close()
