@@ -26,12 +26,12 @@ namespace AsyncIO
         TCPServerSocket &operator=(TCPServerSocket &&) = delete;
 
         Result Listen(unsigned int port);
-        std::pair<Result, SocketInfo> AcceptSync();
         void OnAccept(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> p_fOnAcceptCallback);
         int GetID();
         void Close();
 
     private:
+        std::pair<Result, SocketInfo> AcceptSync();
         SocketInfo m_oSocketData;
         sockaddr_in m_oAddress;
         unsigned int m_uiPort;
