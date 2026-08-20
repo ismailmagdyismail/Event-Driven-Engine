@@ -106,7 +106,7 @@ void AsyncIO::AsyncFdIO::HandleEventReady(AsyncIO::EventContext ctx)
     }
     else if (AsyncIO::PollHelpers::IsEventSet(ctx.readyEvents, EventType::Read))
     {
-        HandleDataReady();
+        HandleReadEvent();
     }
     else if (AsyncIO::PollHelpers::IsEventSet(ctx.readyEvents, EventType::WriteSpaceAvailable))
     {
@@ -121,10 +121,31 @@ void AsyncIO::AsyncFdIO::HandleEventReady(AsyncIO::EventContext ctx)
     }
 }
 
-void AsyncIO::AsyncFdIO::HandleDataReady()
+void AsyncIO::AsyncFdIO::HandleReadEvent()
+{
+    if (m_fOnDataAvailableHandler)
+    {
+        m_fOnDataAvailableHandler();
+    }
+    else
+    {
+        HandleReadData();
+    }
+}
+
+void AsyncIO::AsyncFdIO::HandleReadData()
 {
     unsigned int size = 1024;
     char buffer[size];
+    int readBytes = ReadSync(buffer, size);
+    if (m_fOnReadHandler)
+    {
+        m_fOnReadHandler(buffer, readBytes);
+    }
+}
+
+int AsyncIO::AsyncFdIO::ReadSync(char *buffer, unsigned int size)
+{
     int readBytes = read(GetID(), buffer, size);
     if (readBytes == -1)
     {
@@ -134,10 +155,7 @@ void AsyncIO::AsyncFdIO::HandleDataReady()
     {
         throw std::runtime_error("[FATAL]: connection closed by socket.read which is unxpected, event loop handle it with higher priority than read!");
     }
-    if (m_fOnReadHandler)
-    {
-        m_fOnReadHandler(buffer, readBytes);
-    }
+    return readBytes;
 }
 
 void AsyncIO::AsyncFdIO::HandleClose()
@@ -149,9 +167,16 @@ void AsyncIO::AsyncFdIO::HandleClose()
     }
 }
 
+void AsyncIO::AsyncFdIO::OnDataAvailable(std::function<void(void)> p_fonDataAvailableCallback)
+{
+    m_fOnDataAvailableHandler = std::move(p_fonDataAvailableCallback);
+    m_fOnReadHandler = nullptr;
+}
+
 void AsyncIO::AsyncFdIO::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)
 {
     m_fOnReadHandler = std::move(p_fOnReadCallback);
+    m_fOnDataAvailableHandler = nullptr;
 }
 
 void AsyncIO::AsyncFdIO::OnClose(std::function<void(void)> p_fOnCloseCallback)

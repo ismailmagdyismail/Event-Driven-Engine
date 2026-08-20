@@ -28,10 +28,16 @@ namespace AsyncIO
         TCPClientSocket(TCPClientSocket &&) = delete;
         TCPClientSocket &operator=(TCPClientSocket &&) = delete;
 
-        Result Connect(unsigned int port);
+        //! Callback APIs
         bool WriteAll(const char *buffer, unsigned int, std::function<void(void)> p_fOnCompletion = []() {});
+        void OnDataAvailable(std::function<void(TCPClientSocket &)>); //! Use either onDataAvailable cb or onRead cb whichever is set last
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
+
+        //! Synchrnous APIs
+        int ReadSync(char *buffer, unsigned int size);
+
+        Result Connect(unsigned int port);
         int GetID();
         void Close();
 

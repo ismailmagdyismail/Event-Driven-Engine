@@ -21,6 +21,17 @@ void AsyncIO::TerminalIO::OnRead(std::function<void(char *, unsigned int)> p_fOn
     m_oStdIn.OnRead(std::move(p_fOnReadCallback));
 }
 
+void AsyncIO::TerminalIO::OnDataAvailable(std::function<void(TerminalIO &)> p_fOnDataAvailableCallback)
+{
+    m_oStdIn.OnDataAvailable([this, cb = std::move(p_fOnDataAvailableCallback)]()
+                             { cb(*this); });
+}
+
+int AsyncIO::TerminalIO::ReadSync(char *buffer, unsigned int size)
+{
+    return m_oStdIn.ReadSync(buffer, size);
+}
+
 void AsyncIO::TerminalIO::OnClose(std::function<void(void)> p_fOnCloseCallback)
 {
     // Terminal close events are generally associated with stdin.

@@ -62,6 +62,17 @@ bool AsyncIO::TCPClientSocket::WriteAll(const char *buffer, unsigned int size, s
     return m_oAsyncFDIO.WriteAll(buffer, size, std::move(p_fOnCompletion));
 }
 
+void AsyncIO::TCPClientSocket::OnDataAvailable(std::function<void(TCPClientSocket &)> p_fOnDataAvailableCallback)
+{
+    m_oAsyncFDIO.OnDataAvailable([this, cb = std::move(p_fOnDataAvailableCallback)]()
+                                 { cb(*this); });
+}
+
+int AsyncIO::TCPClientSocket::ReadSync(char *buffer, unsigned int size)
+{
+    return m_oAsyncFDIO.ReadSync(buffer, size);
+}
+
 void AsyncIO::TCPClientSocket::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)
 {
     m_oAsyncFDIO.OnRead(std::move(p_fOnReadCallback));

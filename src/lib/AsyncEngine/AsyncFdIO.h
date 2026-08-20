@@ -25,9 +25,15 @@ namespace AsyncIO
 
         void SetFD(int, short flagsToSubTo);
 
+        //! Callback APIs
         bool WriteAll(const char *buffer, unsigned int, std::function<void(void)> p_fOnCompletion = []() {});
+        void OnDataAvailable(std::function<void(void)>); //! Use either onDataAvailable cb or onRead cb whichever is set last
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
+
+        //! Synchronous APIs
+        int ReadSync(char *buffer, unsigned int size);
+
         int GetID();
         void Close();
 
@@ -36,7 +42,8 @@ namespace AsyncIO
         void ResetPendingBuffer();
         void HandleEventReady(EventContext ctx);
         void HandleClose();
-        void HandleDataReady();
+        void HandleReadData();
+        void HandleReadEvent();
         bool ConnectionInterrupted(int writtenBytes, int errcode);
         bool BackPressure(int writtenBytes, int errcode);
 
@@ -46,6 +53,7 @@ namespace AsyncIO
         std::function<void(void)> m_fOnWriteComplete{nullptr};
         std::function<void(void)> m_fOnCloseHandler{nullptr};
         std::function<void(char *, unsigned int)> m_fOnReadHandler{nullptr};
+        std::function<void(void)> m_fOnDataAvailableHandler{nullptr};
         int m_iFD{-1};
         EventLoop *m_pEventLoop{nullptr};
     };
