@@ -53,7 +53,7 @@ void Broadcast(std::string_view slice, std::function<bool(AsyncIO::TCPClientSock
 int main()
 {
     AsyncIO::EventLoop loop;
-    AsyncIO::TerminalIO terminal(AsyncIO::TerminalIO::TerminalType::STDIN, &loop);
+    AsyncIO::TerminalIO terminal(&loop);
     auto result = AsyncIO::TCPServerSocket::Create(&loop);
     auto &serverSocket = result.second;
 
