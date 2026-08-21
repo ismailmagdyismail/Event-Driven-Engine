@@ -36,7 +36,7 @@ int main()
     };
     terminal.OnRead(std::move(onTerminalRead));
 
-    if (!socket.Connect(8080).success)
+    if (!socket.Connect(9095).success)
     {
         std::cerr << "client failed to connect " << std::endl;
         return -1;
