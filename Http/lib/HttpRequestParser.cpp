@@ -4,6 +4,16 @@
 //! Helpers
 #include "StringHelpers.h"
 
+HttpRequestParser::~HttpRequestParser()
+{
+    if (m_buffer)
+    {
+        delete[] m_buffer;
+    }
+    const unsigned int uiBufferSize = 0;
+    Reset(uiBufferSize);
+}
+
 HttpRequestParser::ParsingResult HttpRequestParser::Parse()
 {
     HttpRequestParser::ParsingResult result;
@@ -35,14 +45,24 @@ HttpRequestParser::ParsingResult HttpRequestParser::Parse()
     //! 1.2 Finished and other requests follow it
     if (m_eState == HttpRequestParser::ParserState::Finished)
     {
+        HttpRequest oRequest = std::move(m_oRequest);
+        oRequest.m_bufferData = m_buffer;
+        oRequest.m_uiSize = m_uiCurrentRequestSize;
+        m_buffer = new char[HttpRequestParser::MAX_REQUEST_SIZE];
+        CopyOverNextRequest(m_buffer, m_oRequest.m_bufferData);
+        const unsigned int uiNextRequestBufferSize = m_uiCurrentBufferSize - m_uiCurrentRequestSize;
+        Reset(uiNextRequestBufferSize);
         return ParsingResult{
             .m_eStatus = ParsingStatus::Done,
+            .m_oRequest = std::move(oRequest),
         };
     }
 
     //! 2. Request size exceeded max set size, and was still not finished.
     if (m_uiCurrentBufferSize >= HttpRequestParser::MAX_REQUEST_SIZE)
     {
+        const unsigned int uiBufferSize = 0;
+        Reset(uiBufferSize);
         return ParsingResult{
             .m_eStatus = ParsingStatus::Failed,
             .m_strMessage = "Http Request exceeded max size, without being finished",
@@ -210,4 +230,30 @@ void HttpRequestParser::StoreBody(HttpRequestParser::PhaseInfo &p_oBodyInfo)
 unsigned int HttpRequestParser::GetMaxRemainingRequestSize()
 {
     return HttpRequestParser::MAX_REQUEST_SIZE - m_uiCurrentBufferSize;
+}
+
+void HttpRequestParser::CopyOverNextRequest(char *currentBuffer, char *oldBuffer)
+{
+    const unsigned int uiSizeToCopyOver = m_uiCurrentBufferSize - m_uiCurrentRequestSize;
+    std::memcpy(currentBuffer, oldBuffer, uiSizeToCopyOver);
+}
+
+void HttpRequestParser::Reset(unsigned int p_uiBufferSize)
+{
+    m_eState = HttpRequestParser::ParserState::RequestLine;
+    m_uiCurrentBufferSize = p_uiBufferSize;
+    m_uiRequestPtr = 0;
+    m_uiCurrentRequestSize = 0;
+    ResetPhase(m_oRequestLineInfo);
+    ResetPhase(m_oHeaderInfo);
+    ResetPhase(m_oBodyInfo);
+    m_oRequest = HttpRequest{
+        .m_bufferData = m_buffer,
+    };
+}
+
+void HttpRequestParser::ResetPhase(HttpRequestParser::PhaseInfo &p_oPhase)
+{
+    p_oPhase.m_uiSize = 0;
+    p_oPhase.m_uiStartPtr = 0;
 }

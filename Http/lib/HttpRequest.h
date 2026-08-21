@@ -9,9 +9,17 @@
 
 struct HttpRequest
 {
+    void Destroy()
+    {
+        if (m_bufferData)
+        {
+            delete[] m_bufferData;
+        }
+    }
+
     //! Entire Request
-    char *m_bufferData;
-    unsigned int m_uiSize;
+    char *m_bufferData{nullptr};
+    unsigned int m_uiSize{0};
 
     //! Request Line
     std::string_view m_sliceRequestLine;

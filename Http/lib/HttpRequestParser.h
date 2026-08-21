@@ -22,7 +22,10 @@ public:
     {
         ParsingStatus m_eStatus;
         std::string m_strMessage;
+        HttpRequest m_oRequest;
     };
+
+    ~HttpRequestParser();
 
     template <typename InputSource>
     HttpRequestParser::ParsingResult Parse(InputSource &tSource);
@@ -61,11 +64,16 @@ private:
     //! Sizing Calculations
     unsigned int GetMaxRemainingRequestSize();
 
+    //! Resetting And Finalizing
+    void Reset(unsigned int p_uiBufferSize);
+    void ResetPhase(HttpRequestParser::PhaseInfo &);
+    void CopyOverNextRequest(char *currentBuffer, char *oldBuffer);
+
     HttpRequestParser::ParserState m_eState{HttpRequestParser::ParserState::RequestLine};
     unsigned int m_uiCurrentBufferSize{0};
     unsigned int m_uiCurrentRequestSize{0};
     unsigned int m_uiRequestPtr{0};
-    char m_buffer[HttpRequestParser::MAX_REQUEST_SIZE];
+    char *m_buffer{new char[HttpRequestParser::MAX_REQUEST_SIZE]};
     HttpRequestParser::PhaseInfo m_oRequestLineInfo;
     HttpRequestParser::PhaseInfo m_oHeaderInfo;
     HttpRequestParser::PhaseInfo m_oBodyInfo;

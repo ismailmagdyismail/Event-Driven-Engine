@@ -6,6 +6,7 @@
 #include "EventLoop.h"
 #include "TCPServerSocket.h"
 #include "HttpRequestParser.h"
+#include "TerminalIO.h"
 
 struct ConnectionSession
 {
@@ -66,6 +67,7 @@ int main()
         else
         {
             std::cerr << "parsing finished " << std::endl;
+            std::cerr << "PAYLOAD " << std::string_view(oRes.m_oRequest.m_bufferData, oRes.m_oRequest.m_uiSize) << std::endl;
             socket.WriteAll(response.data(), response.size(), []()
                             { std::cerr << "Response written back" << std::endl; });
         }
