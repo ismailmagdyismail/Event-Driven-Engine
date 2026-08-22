@@ -223,7 +223,7 @@ HttpRequestParser::ParsingResult HttpRequestParser::SplitAndStoreHeader(const Ht
             };
         }
         auto header = header_value[0];
-        auto value = std::string_view(line.data() + header.size() + 1, line.size() - header.size());
+        auto value = std::string_view(line.data() + header.size() + 1, line.size() - header.size() - 1);
         m_oRequest.m_mapHeaders[header] = value;
     }
     m_oRequest.m_sliceHeader = slice;
