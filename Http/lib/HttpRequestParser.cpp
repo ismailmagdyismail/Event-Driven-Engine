@@ -122,8 +122,17 @@ HttpRequestParser::ParsingResult HttpRequestParser::SplitAndStoreRequestLine(con
             .m_strMessage = "RequestLine doesn't has " + std::to_string(requestLineEntries.size()) + " Instead of 3",
         };
     }
+    HttpMethod::Type eHttpMethodType = HttpMethod::Parse(requestLineEntries[0]);
+    if (HttpMethod::Type::Unknown == eHttpMethodType)
+    {
+        return HttpRequestParser::ParsingResult{
+            .m_eStatus = HttpRequestParser::ParsingStatus::Failed,
+            .m_strMessage = "Invalid HttpMethod Encountered in RequestLine ",
+        };
+    }
+    m_oRequest.m_sliceRequestLine = slice;
+    m_oRequest.m_eMethod = eHttpMethodType;
     m_oRequest.m_sliceURI = requestLineEntries[1];
-    //! TODO: Parse HttpMethod into enum
     //! TODO: Parse Version
     return HttpRequestParser::ParsingResult{
         .m_eStatus = HttpRequestParser::ParsingStatus::InProgress,

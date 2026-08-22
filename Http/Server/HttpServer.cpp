@@ -67,7 +67,11 @@ int main()
         else
         {
             std::cerr << "parsing finished " << std::endl;
-            std::cerr << "PAYLOAD " << std::string_view(oRes.m_oRequest.m_bufferData, oRes.m_oRequest.m_uiSize) << std::endl;
+            std::cerr << "REQ_LINE " << oRes.m_oRequest.m_sliceRequestLine << std::endl;
+            std::cerr << "Headers count " << oRes.m_oRequest.m_mapHeaders.size() << std::endl;
+            std::cerr << "Http MEthod  " << static_cast<int>(oRes.m_oRequest.m_eMethod) << std::endl;
+            std::cerr << "Http URI  " << oRes.m_oRequest.m_sliceURI << std::endl;
+            std::cerr << "Body size  " << oRes.m_oRequest.m_sliceBody.size() << std::endl;
             socket.WriteAll(response.data(), response.size(), []()
                             { std::cerr << "Response written back" << std::endl; });
         }

@@ -1,9 +1,18 @@
 #pragma once
 
-enum class HttpMethod
+#include <string>
+
+class HttpMethod
 {
-    GET,
-    POST,
-    DELETE,
-    PUT,
+public:
+    enum class Type
+    {
+        GET,
+        POST,
+        DELETE,
+        PUT,
+        Unknown,
+    };
+
+    static HttpMethod::Type Parse(std::string_view &slice);
 };

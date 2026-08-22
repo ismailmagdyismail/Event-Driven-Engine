@@ -23,7 +23,7 @@ struct HttpRequest
 
     //! Request Line
     std::string_view m_sliceRequestLine;
-    HttpMethod m_eMethod;
+    HttpMethod::Type m_eMethod;
     std::string_view m_sliceURI;
     float version;
 
