@@ -52,6 +52,7 @@ private:
     //! Request Line Parsing
     HttpRequestParser::ParsingResult ParseRequestLine();
     HttpRequestParser::ParsingResult SplitAndStoreRequestLine(const HttpRequestParser::PhaseInfo &p_oRequestLineInfo);
+    std::pair<HttpRequestParser::ParsingResult, float> ParseVersion(std::string_view &slice);
 
     //! Header Parsing
     HttpRequestParser::ParsingResult ParseHeader();

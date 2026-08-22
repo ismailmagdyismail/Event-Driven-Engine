@@ -130,12 +130,41 @@ HttpRequestParser::ParsingResult HttpRequestParser::SplitAndStoreRequestLine(con
             .m_strMessage = "Invalid HttpMethod Encountered in RequestLine ",
         };
     }
+    auto versionParsingResult = ParseVersion(requestLineEntries[2]);
+    if (versionParsingResult.first.m_eStatus == HttpRequestParser::ParsingStatus::Failed)
+    {
+        return versionParsingResult.first;
+    }
+
+    //! Store data in Http Request being parsed
     m_oRequest.m_sliceRequestLine = slice;
     m_oRequest.m_eMethod = eHttpMethodType;
     m_oRequest.m_sliceURI = requestLineEntries[1];
-    //! TODO: Parse Version
+    m_oRequest.version = versionParsingResult.second;
+
     return HttpRequestParser::ParsingResult{
         .m_eStatus = HttpRequestParser::ParsingStatus::InProgress,
+    };
+}
+
+std::pair<HttpRequestParser::ParsingResult, float> HttpRequestParser::ParseVersion(std::string_view &slice)
+{
+    //! EX: Http/1.1
+    auto versionEntries = Split(slice, "/");
+    if (versionEntries.size() != 2)
+    {
+        return {
+            HttpRequestParser::ParsingResult{
+                .m_eStatus = HttpRequestParser::ParsingStatus::Failed,
+                .m_strMessage = "Invalid Http Version Encountered",
+            },
+            0.0,
+        };
+    }
+    float version = std::stof(std::string(versionEntries[1]));
+    return {
+        HttpRequestParser::ParsingResult{.m_eStatus = HttpRequestParser::ParsingStatus::InProgress},
+        version,
     };
 }
 

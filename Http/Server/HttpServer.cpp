@@ -71,6 +71,7 @@ int main()
             std::cerr << "Headers count " << oRes.m_oRequest.m_mapHeaders.size() << std::endl;
             std::cerr << "Http MEthod  " << static_cast<int>(oRes.m_oRequest.m_eMethod) << std::endl;
             std::cerr << "Http URI  " << oRes.m_oRequest.m_sliceURI << std::endl;
+            std::cerr << "Http Version  " << oRes.m_oRequest.version << std::endl;
             std::cerr << "Body size  " << oRes.m_oRequest.m_sliceBody.size() << std::endl;
             socket.WriteAll(response.data(), response.size(), []()
                             { std::cerr << "Response written back" << std::endl; });
