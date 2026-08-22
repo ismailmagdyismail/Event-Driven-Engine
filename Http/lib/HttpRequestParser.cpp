@@ -264,7 +264,7 @@ HttpRequestParser::ParsingResult HttpRequestParser::ParseBody()
     }
 
     unsigned int uiInMemoryBodySize = m_uiCurrentBufferSize - m_uiRequestPtr;
-    if (uiInMemoryBodySize < 0)
+    if (m_uiRequestPtr > m_uiCurrentBufferSize)
     {
         throw std::runtime_error("[FATAL]: Error Happend in Body size calculation");
     }
