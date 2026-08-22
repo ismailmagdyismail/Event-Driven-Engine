@@ -56,10 +56,12 @@ private:
     //! Header Parsing
     HttpRequestParser::ParsingResult ParseHeader();
     HttpRequestParser::ParsingResult SplitAndStoreHeader(const HttpRequestParser::PhaseInfo &p_oHeaderPhaseInfo);
+    void CacheHeaderPhaseInfo(const HttpRequestParser::PhaseInfo &p_oReqLineInfo);
 
     //! Body Parsing
     HttpRequestParser::ParsingResult ParseBody();
     void StoreBody(HttpRequestParser::PhaseInfo &p_oBodyInfo);
+    void CacheBodyPhaseInfo(const HttpRequestParser::PhaseInfo &p_oHeaderPhase, const std::unordered_map<std::string_view, std::string_view> &p_mapHeaders);
 
     //! Sizing Calculations
     unsigned int GetMaxRemainingRequestSize();

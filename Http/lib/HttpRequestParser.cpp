@@ -85,7 +85,6 @@ HttpRequestParser::ParsingResult HttpRequestParser::ParseRequestLine()
             //! 1. Create Request Line info, And Beggining of Header info
             m_oRequestLineInfo.m_uiStartPtr = 0;
             m_oRequestLineInfo.m_uiSize = m_uiRequestPtr;
-            m_oHeaderInfo.m_uiStartPtr = m_oRequestLineInfo.m_uiStartPtr + m_oRequestLineInfo.m_uiSize + 2;
 
             //! 2. Split, Parse Request Line
             HttpRequestParser::ParsingResult result = SplitAndStoreRequestLine(m_oRequestLineInfo);
@@ -93,6 +92,9 @@ HttpRequestParser::ParsingResult HttpRequestParser::ParseRequestLine()
             {
                 return result;
             }
+
+            //! 3. Cache Header Phase Info
+            CacheHeaderPhaseInfo(m_oRequestLineInfo);
 
             //! 3. Advance state machine, and Parse next phase
             m_uiRequestPtr += 2;
@@ -128,6 +130,11 @@ HttpRequestParser::ParsingResult HttpRequestParser::SplitAndStoreRequestLine(con
     };
 }
 
+void HttpRequestParser::CacheHeaderPhaseInfo(const HttpRequestParser::PhaseInfo &p_oRequestLineInfo)
+{
+    m_oHeaderInfo.m_uiStartPtr = p_oRequestLineInfo.m_uiStartPtr + p_oRequestLineInfo.m_uiSize + 2;
+}
+
 HttpRequestParser::ParsingResult HttpRequestParser::ParseHeader()
 {
     while (m_uiRequestPtr < m_uiCurrentBufferSize - 3)
@@ -135,9 +142,8 @@ HttpRequestParser::ParsingResult HttpRequestParser::ParseHeader()
         std::string_view slice(m_buffer + m_uiRequestPtr, 4);
         if (slice == "\r\n\r\n")
         {
-            //! 1. Create Header Info, And Body Info
+            //! 1. Create Header Info
             m_oHeaderInfo.m_uiSize = m_uiRequestPtr - m_oHeaderInfo.m_uiStartPtr;
-            m_oBodyInfo.m_uiStartPtr = m_oHeaderInfo.m_uiStartPtr + m_oHeaderInfo.m_uiSize + 4;
 
             //! 2. Split and Parse Header
             HttpRequestParser::ParsingResult result = SplitAndStoreHeader(m_oHeaderInfo);
@@ -146,10 +152,13 @@ HttpRequestParser::ParsingResult HttpRequestParser::ParseHeader()
                 return result;
             }
 
-            // 3. Advance ParserState Machine.
+            //! 3. Cache Initial Body Meta-Data Info
+            CacheBodyPhaseInfo(m_oHeaderInfo, m_oRequest.m_mapHeaders);
+
+            // 4. Advance ParserState Machine.
             m_uiRequestPtr += 4;
             m_eState = HttpRequestParser::ParserState::Body;
-            ParseBody();
+            return ParseBody();
         }
         else
         {
@@ -176,55 +185,73 @@ HttpRequestParser::ParsingResult HttpRequestParser::SplitAndStoreHeader(const Ht
             };
         }
         auto header = header_value[0];
-        auto value = std::string_view(line.data() + header.size(), line.size() - header.size());
+        auto value = std::string_view(line.data() + header.size() + 1, line.size() - header.size());
         m_oRequest.m_mapHeaders[header] = value;
     }
+    m_oRequest.m_sliceHeader = slice;
     return HttpRequestParser::ParsingResult{
         .m_eStatus = HttpRequestParser::ParsingStatus::InProgress,
     };
+}
+
+void HttpRequestParser::CacheBodyPhaseInfo(const HttpRequestParser::PhaseInfo &p_oHeaderPhase, const std::unordered_map<std::string_view, std::string_view> &p_mapHeaders)
+{
+    //! Cache Body Meta-Data Once
+    //! Helps with Parsing Body
+    //! Cached , Stored Once after finishing the header parsing
+    m_oBodyInfo.m_uiStartPtr = p_oHeaderPhase.m_uiStartPtr + p_oHeaderPhase.m_uiSize + 4;
+    auto it = p_mapHeaders.find("Content-Length");
+    if (it == p_mapHeaders.end())
+    {
+        m_oBodyInfo.m_uiSize = 0;
+    }
+    else
+    {
+        auto &value = it->second;
+        auto strValue = std::string(value.data(), value.size());
+        m_oBodyInfo.m_uiSize = stoi(strValue);
+    }
 }
 
 HttpRequestParser::ParsingResult HttpRequestParser::ParseBody()
 {
-    auto it = m_oRequest.m_mapHeaders.find("ContentLength");
-    if (it == m_oRequest.m_mapHeaders.end())
+    if (m_oBodyInfo.m_uiSize == 0)
     {
         m_uiCurrentRequestSize = m_uiRequestPtr;
         m_eState = HttpRequestParser::ParserState::Finished;
+        m_oRequest.m_sliceBody = std::string_view{};
         return ParsingResult{
             .m_eStatus = HttpRequestParser::ParsingStatus::Done,
         };
     }
 
-    auto value = m_oRequest.m_mapHeaders["ContentLength"];
-    auto strValue = std::string(value.data(), value.size());
-
-    //! TODO: cache this info after parsing header
-    int uiBodySize = stoi(strValue);
-    m_oBodyInfo.m_uiSize = uiBodySize;
-    int uiInMemoryBodySize = m_uiCurrentBufferSize - m_uiRequestPtr;
+    unsigned int uiInMemoryBodySize = m_uiCurrentBufferSize - m_uiRequestPtr;
     if (uiInMemoryBodySize < 0)
     {
         throw std::runtime_error("[FATAL]: Error Happend in Body size calculation");
     }
-    if (uiInMemoryBodySize > uiBodySize)
+
+    //! Found whole body in current Consumed Bytes
+    //! Thus request is fully finished till end of body
+    if (uiInMemoryBodySize >= m_oBodyInfo.m_uiSize)
     {
-        m_uiRequestPtr = m_oBodyInfo.m_uiStartPtr + uiBodySize;
+        m_uiRequestPtr = m_oBodyInfo.m_uiStartPtr + m_oBodyInfo.m_uiSize;
         m_uiCurrentRequestSize = m_uiRequestPtr;
         m_eState = HttpRequestParser::ParserState::Finished;
+        m_oRequest.m_sliceBody = std::string_view(m_buffer + m_oBodyInfo.m_uiStartPtr, m_oBodyInfo.m_uiSize);
         return ParsingResult{
             .m_eStatus = HttpRequestParser::ParsingStatus::Done,
         };
     }
+
+    //! Body is still not fully Consumed, present in Memory
+    //! Still to be consumed by the input source
+    //! So we move consumption ptr till the end of the current size (since all of this belong to the current request)
+    //! Body is expected to be in the incoming bytes i.e we are still in progress of parsing body
     m_uiRequestPtr = m_uiCurrentBufferSize;
     return HttpRequestParser::ParsingResult{
         .m_eStatus = HttpRequestParser::ParsingStatus::InProgress,
     };
-}
-
-void HttpRequestParser::StoreBody(HttpRequestParser::PhaseInfo &p_oBodyInfo)
-{
-    m_oRequest.m_sliceBody = std::string_view(m_buffer + p_oBodyInfo.m_uiStartPtr, p_oBodyInfo.m_uiSize);
 }
 
 unsigned int HttpRequestParser::GetMaxRemainingRequestSize()
