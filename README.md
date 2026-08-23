@@ -1,5 +1,9 @@
 # TODO:
 
+- add IDispatcher & CallbackDispatcher and FutureDispatcher
+  - to prevent the simulatnous use of both of them leading to ub behaviour
+  - and make it easier / transperant without changing alot
+- Add Stack allocated futures + ID / handles to avoid dangling refs
 - add threading and RCU | COW
 - add thread pool
 

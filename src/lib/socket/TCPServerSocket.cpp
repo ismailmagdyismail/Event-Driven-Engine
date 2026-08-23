@@ -8,6 +8,7 @@
 #include "TCPSocket.h"
 #include "RunTime.h"
 #include "Events.h"
+#include "AcceptFuture.h"
 
 std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::Create(AsyncIO::RunTime *p_pEventLoop)
 {
@@ -105,6 +106,11 @@ std::pair<AsyncIO::Result, AsyncIO::SocketInfo> AsyncIO::TCPServerSocket::Accept
             AsyncIO::SocketInfo{},
         };
     }
+}
+
+AsyncIO::AcceptFuture *AsyncIO::TCPServerSocket::Accept()
+{
+    return AcceptFuture::Spawn(m_oSocketData.fd, m_pEventLoop);
 }
 
 void AsyncIO::TCPServerSocket::OnAccept(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> p_fOnAcceptCallback)

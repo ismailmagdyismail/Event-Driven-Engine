@@ -3,6 +3,7 @@
 //! Async Engine Includes
 #include "CallbackRegistry.h"
 #include "MonitoredFdRegistry.h"
+#include "FutureRegistry.h"
 
 namespace AsyncIO
 {
@@ -10,5 +11,6 @@ namespace AsyncIO
     {
         MonitoredFdRegistry m_oMonitoredFdRegistry;
         CallbackRegistry m_oCallbackRegistry;
+        FutureRegistry m_oFutureRegistry;
     };
 }

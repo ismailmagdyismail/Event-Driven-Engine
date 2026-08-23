@@ -12,6 +12,7 @@
 namespace AsyncIO
 {
     class RunTime;
+    class AcceptFuture;
     class TCPServerSocket
     {
     public:
@@ -26,7 +27,13 @@ namespace AsyncIO
         TCPServerSocket &operator=(TCPServerSocket &&) = delete;
 
         Result Listen(unsigned int port);
+
+        //! Callbacks
         void OnAccept(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> p_fOnAcceptCallback);
+
+        //! Async APIs
+        AcceptFuture *Accept();
+
         int GetID();
         void Close();
 

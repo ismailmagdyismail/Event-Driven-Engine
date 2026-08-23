@@ -5,11 +5,14 @@
 #include <arpa/inet.h>
 #include <thread>
 #include <chrono>
+
+//! Async Engine Includes
 #include "PollUtils.h"
 #include "TCPSocket.h"
 #include "TCPServerSocket.h"
 #include "RunTime.h"
 #include "Events.h"
+#include "AcceptFuture.h"
 
 AsyncIO::RunTime loop;
 auto serverSocketCreation = AsyncIO::TCPServerSocket::Create(&loop);
@@ -59,9 +62,12 @@ int main()
         std::cerr << listenResult.message << std::endl;
         exit(1);
     }
+    std::cout << "Server Listening on Port " << port << std::endl;
 
-    std::cout << "Server is listening on port " << port << std::endl;
-    serverSocket.OnAccept(OnAcceptConnectionHandler);
+    serverSocket.Accept()
+        ->Then([](std::unique_ptr<AsyncIO::TCPClientSocket> clientSocket)
+               { std::cerr << "new connection accepted " << std::endl; });
+    // serverSocket.OnAccept(OnAcceptConnectionHandler);
 
     loop.Run();
 

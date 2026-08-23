@@ -9,6 +9,7 @@
 #include "PollableRegistery.h"
 #include "PollUtils.h"
 #include "MPSCQueue.h"
+#include "IFuture.h"
 
 AsyncIO::RunTime::RunTime() : m_oRequestQueue(1000)
 {
@@ -64,15 +65,19 @@ AsyncIO::Result AsyncIO::RunTime::Run()
             pollfd monitoredFd = m_oRegistery.m_oMonitoredFdRegistry.GetMonitoredFDByIndex(i);
             if (AsyncIO::PollHelpers::IsReady(monitoredFd.revents))
             {
-                auto callbackIt = m_oRegistery.m_oCallbackRegistry.m_mapCallBacks.find(monitoredFd.fd);
-                if (callbackIt == m_oRegistery.m_oCallbackRegistry.m_mapCallBacks.end())
-                {
-                    continue;
-                }
-                callbackIt->second(EventContext{
-                    .id = monitoredFd.fd,
-                    .readyEvents = monitoredFd.revents,
-                });
+                //! 1. Callback Dispatching (to be extracted into its own strategy)
+                // auto callbackIt = m_oRegistery.m_oCallbackRegistry.m_mapCallBacks.find(monitoredFd.fd);
+                // if (callbackIt == m_oRegistery.m_oCallbackRegistry.m_mapCallBacks.end())
+                // {
+                //     continue;
+                // }
+                // callbackIt->second(EventContext{
+                //     .id = monitoredFd.fd,
+                //     .readyEvents = monitoredFd.revents,
+                // });
+
+                //! 2. Future Dispatching (to be extracted into its own strategy)
+                DispatchToFuture(monitoredFd);
             }
         }
         if (m_fMainTask)
@@ -82,6 +87,55 @@ AsyncIO::Result AsyncIO::RunTime::Run()
         std::this_thread::yield();
     }
     return AsyncIO::Result{.success = true};
+}
+
+void AsyncIO::RunTime::DispatchToFuture(pollfd &monitoredFd)
+{
+    std::vector<short> activeEvents = AsyncIO::PollHelpers::GetActiveEvents(monitoredFd.revents);
+    for (const auto &currentEvent : activeEvents)
+    {
+        auto future = m_oRegistery.m_oFutureRegistry.GetFuture(monitoredFd.fd, currentEvent);
+        if (future)
+        {
+            PollFuture(future, monitoredFd.fd, currentEvent, monitoredFd.revents);
+        }
+    }
+}
+
+void AsyncIO::RunTime::PollFuture(IFuture *p_pFuture, int fd, short currentEvent, short revents)
+{
+    //! TODO: Should we remove the future from MonitoredFdRegistry as well? (since it is no longer needed)
+    //! TODO: this all should be moved into FutureDispatcher alongside Register and Unregister (Dispatcher should handle coordination, reg, unreg, and polling)
+    FutureStatus status = p_pFuture->Poll();
+    short updatedEventMask = PollHelpers::UnSetEvent(revents, currentEvent);
+
+    switch (status)
+    {
+    case FutureStatus::Pending:
+        break;
+    case FutureStatus::Completed:
+    {
+        auto then = p_pFuture->GetContinuation();
+        if (then)
+        {
+            then();
+        }
+        RemoveFuture(fd, updatedEventMask, p_pFuture);
+        break;
+    }
+    case FutureStatus::Failed:
+        RemoveFuture(fd, updatedEventMask, p_pFuture);
+        break;
+    default:
+        throw std::runtime_error("Unknown future status for fd: " + std::to_string(fd) + " and event: " + std::to_string(currentEvent));
+    }
+}
+
+void AsyncIO::RunTime::RemoveFuture(int fd, short updatedEventMask, AsyncIO::IFuture *p_pFuture)
+{
+    m_oRegistery.m_oMonitoredFdRegistry.AddOrUpdate(fd, updatedEventMask);
+    m_oRegistery.m_oFutureRegistry.RemoveAll(fd, p_pFuture);
+    delete p_pFuture;
 }
 
 void AsyncIO::RunTime::SubScribeToEvent(int id, short eventsToSubscribeTo, std::function<void(AsyncIO::EventContext)> &&callback)
@@ -96,6 +150,23 @@ void AsyncIO::RunTime::SubScribeToEvent(int id, short eventsToSubscribeTo, std::
 void AsyncIO::RunTime::UnRegisterFromAllEvents(int id)
 {
     m_oRequestQueue.Push(std::make_unique<AsyncIO::CallbackUnSubscribeHandler>(CallbackUnSubscribeHandler::CallbackUnSubscribeHandlerContext{
+        .fd = id,
+    }));
+}
+
+void AsyncIO::RunTime::RegisterFuture(int id, short eventsToSubTo, IFuture *p_pFuture)
+{
+    m_oRequestQueue.Push(std::make_unique<AsyncIO::FutureSubscriptionHandler>(FutureSubscriptionHandler::FutureSubscriptionHandlerContext{
+        .p_pFuture = p_pFuture,
+        .fd = id,
+        .eventsToSubTo = eventsToSubTo,
+    }));
+}
+
+void AsyncIO::RunTime::UnRegisterFutureFromAllEvents(int id, IFuture *p_pFuture)
+{
+    m_oRequestQueue.Push(std::make_unique<AsyncIO::FutureUnSubscriptionHandler>(FutureUnSubscriptionHandler::FutureUnSubscriptionHandlerContext{
+        .p_pFuture = p_pFuture,
         .fd = id,
     }));
 }
