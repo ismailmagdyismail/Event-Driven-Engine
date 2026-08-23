@@ -8,12 +8,12 @@
 
 namespace AsyncIO
 {
-    class EventLoop;
+    class RunTime;
 
     class TerminalIO
     {
     public:
-        explicit TerminalIO(EventLoop *p_pLoop);
+        explicit TerminalIO(RunTime *p_pLoop);
 
         //! CallBack APIs
         bool WriteAll(char *buffer, unsigned int size, std::function<void(void)> p_fOnCompletion = []() {});

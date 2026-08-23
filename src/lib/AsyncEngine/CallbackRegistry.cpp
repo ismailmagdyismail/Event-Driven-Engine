@@ -1,13 +1,13 @@
 //! Async Engine Includes
 #include "CallbackRegistry.h"
-#include "EventLoopRegistry.h"
+#include "PollableRegistery.h"
 
 AsyncIO::CallbackSubscribeHandler::CallbackSubscribeHandler(AsyncIO::CallbackSubscribeHandler::CallbackSubscribeHandlerContext context)
     : m_oContext(std::move(context))
 {
 }
 
-void AsyncIO::CallbackSubscribeHandler::HandleSubscriptionRequest(AsyncIO::EventLoopRegistery &registery)
+void AsyncIO::CallbackSubscribeHandler::HandleSubscriptionRequest(AsyncIO::PollableRegistery &registery)
 {
     registery.m_oCallbackRegistry.Set(m_oContext.fd, std::move(m_oContext.callback));
     registery.m_oMonitoredFdRegistry.AddOrUpdate(m_oContext.fd, m_oContext.eventsToSubTo);
@@ -18,7 +18,7 @@ AsyncIO::CallbackUnSubscribeHandler::CallbackUnSubscribeHandler(AsyncIO::Callbac
 {
 }
 
-void AsyncIO::CallbackUnSubscribeHandler::HandleSubscriptionRequest(AsyncIO::EventLoopRegistery &registery)
+void AsyncIO::CallbackUnSubscribeHandler::HandleSubscriptionRequest(AsyncIO::PollableRegistery &registery)
 {
     registery.m_oMonitoredFdRegistry.Remove(m_oContext.fd);
     registery.m_oCallbackRegistry.Remove(m_oContext.fd);

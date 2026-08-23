@@ -5,11 +5,11 @@
 
 //! Async Engine
 #include "TCPClientSocket.h"
-#include "EventLoop.h"
+#include "RunTime.h"
 #include "Events.h"
 #include "PollUtils.h"
 
-std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::Create(EventLoop *p_pEventLoop)
+std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::Create(RunTime *p_pEventLoop)
 {
     std::pair<bool, AsyncIO::SocketInfo> socketCreationResult = AsyncIO::CreateTCPSocket();
     AsyncIO::Result result;
@@ -31,7 +31,7 @@ std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::C
     };
 }
 
-AsyncIO::TCPClientSocket AsyncIO::TCPClientSocket::Create(EventLoop *p_pEventLoop, SocketInfo socketInfo)
+AsyncIO::TCPClientSocket AsyncIO::TCPClientSocket::Create(RunTime *p_pEventLoop, SocketInfo socketInfo)
 {
     return AsyncIO::TCPClientSocket{p_pEventLoop, socketInfo};
 }
@@ -88,12 +88,12 @@ int AsyncIO::TCPClientSocket::GetID()
     return m_oAsyncFDIO.GetID();
 }
 
-AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::EventLoop *p_pEventLoop)
+AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::RunTime *p_pEventLoop)
     : m_oAsyncFDIO(p_pEventLoop)
 {
 }
 
-AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::EventLoop *p_pEventLoop, AsyncIO::SocketInfo socketInfo)
+AsyncIO::TCPClientSocket::TCPClientSocket(AsyncIO::RunTime *p_pEventLoop, AsyncIO::SocketInfo socketInfo)
     : m_oSocketInfo(socketInfo), m_oAsyncFDIO(p_pEventLoop)
 {
     short eventsToSubTo = EventType::Read | EventType::CLOSE | EventType::WriteSpaceAvailable;

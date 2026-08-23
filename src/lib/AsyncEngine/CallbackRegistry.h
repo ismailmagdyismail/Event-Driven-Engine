@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 //! Async Engine Includes
-#include "IEventLoopRegisterationHander.h"
+#include "IPollableRegisterySubscriptionHandler.h"
 
 /*
  - to support old callback push mechanism
@@ -17,9 +17,9 @@
 namespace AsyncIO
 {
 
-    struct EventLoopRegistery;
+    struct PollableRegistery;
 
-    class CallbackSubscribeHandler : public IEventLoopSubscriptionHandler
+    class CallbackSubscribeHandler : public IPollableRegisterySubscriptionHandler
     {
     public:
         struct CallbackSubscribeHandlerContext
@@ -30,13 +30,13 @@ namespace AsyncIO
         };
 
         explicit CallbackSubscribeHandler(CallbackSubscribeHandlerContext);
-        void HandleSubscriptionRequest(EventLoopRegistery &) override;
+        void HandleSubscriptionRequest(PollableRegistery &) override;
 
     private:
         CallbackSubscribeHandlerContext m_oContext;
     };
 
-    class CallbackUnSubscribeHandler : public IEventLoopSubscriptionHandler
+    class CallbackUnSubscribeHandler : public IPollableRegisterySubscriptionHandler
     {
     public:
         struct CallbackUnSubscribeHandlerContext
@@ -45,7 +45,7 @@ namespace AsyncIO
         };
 
         explicit CallbackUnSubscribeHandler(CallbackUnSubscribeHandlerContext);
-        void HandleSubscriptionRequest(EventLoopRegistery &) override;
+        void HandleSubscriptionRequest(PollableRegistery &) override;
 
     private:
         CallbackUnSubscribeHandlerContext m_oContext;

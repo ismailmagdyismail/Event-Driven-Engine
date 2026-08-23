@@ -6,10 +6,10 @@
 //! Async Engine
 #include "TCPServerSocket.h"
 #include "TCPSocket.h"
-#include "EventLoop.h"
+#include "RunTime.h"
 #include "Events.h"
 
-std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::Create(AsyncIO::EventLoop *p_pEventLoop)
+std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::Create(AsyncIO::RunTime *p_pEventLoop)
 {
     //! 1. Create Socket FD
     std::pair<bool, AsyncIO::SocketInfo> socketCreationResult = AsyncIO::CreateTCPSocket();
@@ -46,12 +46,12 @@ std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::C
     };
 }
 
-AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::EventLoop *p_pEventloop)
+AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::RunTime *p_pEventloop)
 {
     m_pEventLoop = p_pEventloop;
 }
 
-AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::EventLoop *p_pEventloop, AsyncIO::SocketInfo socketInfo)
+AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::RunTime *p_pEventloop, AsyncIO::SocketInfo socketInfo)
     : m_oSocketData(socketInfo), m_pEventLoop(p_pEventloop)
 {
 }

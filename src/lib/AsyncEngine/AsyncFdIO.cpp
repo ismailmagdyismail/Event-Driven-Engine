@@ -3,11 +3,11 @@
 
 //! Async Engine
 #include "AsyncFdIO.h"
-#include "EventLoop.h"
+#include "RunTime.h"
 #include "Events.h"
 #include "PollUtils.h"
 
-AsyncIO::AsyncFdIO::AsyncFdIO(EventLoop *p_pEventLoop) : m_pEventLoop(p_pEventLoop)
+AsyncIO::AsyncFdIO::AsyncFdIO(RunTime *p_pEventLoop) : m_pEventLoop(p_pEventLoop)
 {
 }
 

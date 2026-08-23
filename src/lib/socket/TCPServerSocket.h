@@ -11,13 +11,13 @@
 
 namespace AsyncIO
 {
-    class EventLoop;
+    class RunTime;
     class TCPServerSocket
     {
     public:
-        static std::pair<Result, TCPServerSocket> Create(EventLoop *);
-        TCPServerSocket(EventLoop *);
-        TCPServerSocket(EventLoop *, SocketInfo);
+        static std::pair<Result, TCPServerSocket> Create(RunTime *);
+        TCPServerSocket(RunTime *);
+        TCPServerSocket(RunTime *, SocketInfo);
         ~TCPServerSocket();
 
         TCPServerSocket(const TCPServerSocket &) = delete;
@@ -35,6 +35,6 @@ namespace AsyncIO
         SocketInfo m_oSocketData;
         sockaddr_in m_oAddress;
         unsigned int m_uiPort;
-        EventLoop *m_pEventLoop;
+        RunTime *m_pEventLoop;
     };
 }

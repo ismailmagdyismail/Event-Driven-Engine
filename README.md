@@ -25,7 +25,7 @@
     */
 
     //! setup event loop, wire it up with async FDs / sockets
-    AsyncIO::EventLoop loop;
+    AsyncIO::RunTime loop;
     auto serverSocketCreation = AsyncIO::TCPServerSocket::Create(&loop);
     AsyncIO::TCPServerSocket &serverSocket = serverSocketCreation.second;
 
@@ -44,7 +44,7 @@
     =========================== Client ==========================================
     =============================================================================
     */
-    AsyncIO::EventLoop loop;
+    AsyncIO::RunTime loop;
     auto socketCreation = AsyncIO::TCPClientSocket::Create(&loop);
     AsyncIO::TCPClientSocket &socket = socketCreation.second;
     AsyncIO::TerminalIO terminal(AsyncIO::TerminalIO::TerminalType::STDIN, &loop);

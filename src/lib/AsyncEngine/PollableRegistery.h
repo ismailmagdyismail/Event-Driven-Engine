@@ -6,7 +6,7 @@
 
 namespace AsyncIO
 {
-    struct EventLoopRegistery
+    struct PollableRegistery
     {
         MonitoredFdRegistry m_oMonitoredFdRegistry;
         CallbackRegistry m_oCallbackRegistry;

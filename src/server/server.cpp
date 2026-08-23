@@ -8,10 +8,10 @@
 #include "PollUtils.h"
 #include "TCPSocket.h"
 #include "TCPServerSocket.h"
-#include "EventLoop.h"
+#include "RunTime.h"
 #include "Events.h"
 
-AsyncIO::EventLoop loop;
+AsyncIO::RunTime loop;
 auto serverSocketCreation = AsyncIO::TCPServerSocket::Create(&loop);
 AsyncIO::TCPServerSocket &serverSocket = serverSocketCreation.second;
 std::unordered_map<unsigned int, std::unique_ptr<AsyncIO::TCPClientSocket>> activeConnections;
@@ -60,7 +60,9 @@ int main()
         exit(1);
     }
 
+    std::cout << "Server is listening on port " << port << std::endl;
     serverSocket.OnAccept(OnAcceptConnectionHandler);
+
     loop.Run();
 
     serverSocket.Close();

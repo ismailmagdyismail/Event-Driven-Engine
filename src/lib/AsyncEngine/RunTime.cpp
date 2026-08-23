@@ -5,22 +5,22 @@
 #include <chrono>
 
 //! Async Engine Includes
-#include "EventLoop.h"
-#include "EventLoopRegistry.h"
+#include "RunTime.h"
+#include "PollableRegistery.h"
 #include "PollUtils.h"
 #include "MPSCQueue.h"
 
-AsyncIO::EventLoop::EventLoop() : m_oRequestQueue(1000)
+AsyncIO::RunTime::RunTime() : m_oRequestQueue(1000)
 {
     m_bRunning.store(false, std::memory_order_relaxed);
 }
 
-void AsyncIO::EventLoop::AddMainTask(std::function<void(void)> p_fMainTask)
+void AsyncIO::RunTime::AddMainTask(std::function<void(void)> p_fMainTask)
 {
     m_fMainTask = std::move(p_fMainTask);
 }
 
-AsyncIO::Result AsyncIO::EventLoop::Run()
+AsyncIO::Result AsyncIO::RunTime::Run()
 {
     m_bRunning.store(true, std::memory_order_relaxed);
     while (m_bRunning.load(std::memory_order_relaxed))
@@ -35,7 +35,7 @@ AsyncIO::Result AsyncIO::EventLoop::Run()
                 - the handle subscriptions / unsubscriptions handlers
                 and instead call the registery directly (since the caller is guranteed to be in the same thread as the event loop)
         */
-        std::unique_ptr<IEventLoopSubscriptionHandler> handler;
+        std::unique_ptr<IPollableRegisterySubscriptionHandler> handler;
         auto state = m_oRequestQueue.Pop(handler);
         switch (static_cast<int>(state))
         {
@@ -84,7 +84,7 @@ AsyncIO::Result AsyncIO::EventLoop::Run()
     return AsyncIO::Result{.success = true};
 }
 
-void AsyncIO::EventLoop::SubScribeToEvent(int id, short eventsToSubscribeTo, std::function<void(AsyncIO::EventContext)> &&callback)
+void AsyncIO::RunTime::SubScribeToEvent(int id, short eventsToSubscribeTo, std::function<void(AsyncIO::EventContext)> &&callback)
 {
     m_oRequestQueue.Push(std::make_unique<AsyncIO::CallbackSubscribeHandler>(CallbackSubscribeHandler::CallbackSubscribeHandlerContext{
         .callback = std::move(callback),
@@ -93,14 +93,14 @@ void AsyncIO::EventLoop::SubScribeToEvent(int id, short eventsToSubscribeTo, std
     }));
 }
 
-void AsyncIO::EventLoop::UnRegisterFromAllEvents(int id)
+void AsyncIO::RunTime::UnRegisterFromAllEvents(int id)
 {
     m_oRequestQueue.Push(std::make_unique<AsyncIO::CallbackUnSubscribeHandler>(CallbackUnSubscribeHandler::CallbackUnSubscribeHandlerContext{
         .fd = id,
     }));
 }
 
-void AsyncIO::EventLoop::Stop()
+void AsyncIO::RunTime::Stop()
 {
     m_oRequestQueue.StopReading();
     m_oRequestQueue.StopWriting();

@@ -6,16 +6,16 @@
 #include <memory>
 
 //! Async Engine
-#include "EventLoopRegistry.h"
+#include "PollableRegistery.h"
 #include "Result.h"
 #include "MPSCQueue.h"
 
 namespace AsyncIO
 {
-    class EventLoop
+    class RunTime
     {
     public:
-        EventLoop();
+        RunTime();
 
         Result Run();
         void Stop();
@@ -26,8 +26,8 @@ namespace AsyncIO
 
     private:
         std::function<void(void)> m_fMainTask{nullptr};
-        MPSCQueue<std::unique_ptr<IEventLoopSubscriptionHandler>> m_oRequestQueue;
-        EventLoopRegistery m_oRegistery;
+        MPSCQueue<std::unique_ptr<IPollableRegisterySubscriptionHandler>> m_oRequestQueue;
+        PollableRegistery m_oRegistery;
         std::atomic<bool> m_bRunning;
     };
 }
