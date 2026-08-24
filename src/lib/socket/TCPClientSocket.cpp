@@ -8,6 +8,7 @@
 #include "RunTime.h"
 #include "Events.h"
 #include "PollUtils.h"
+#include "ReadFuture.h"
 
 std::pair<AsyncIO::Result, AsyncIO::TCPClientSocket> AsyncIO::TCPClientSocket::Create(RunTime *p_pEventLoop)
 {
@@ -71,6 +72,11 @@ void AsyncIO::TCPClientSocket::OnDataAvailable(std::function<void(TCPClientSocke
 int AsyncIO::TCPClientSocket::ReadSync(char *buffer, unsigned int size)
 {
     return m_oAsyncFDIO.ReadSync(buffer, size);
+}
+
+AsyncIO::ReadFuture *AsyncIO::TCPClientSocket::Read(char *buffer, unsigned int size)
+{
+    return m_oAsyncFDIO.Read(buffer, size);
 }
 
 void AsyncIO::TCPClientSocket::OnRead(std::function<void(char *, unsigned int)> p_fOnReadCallback)

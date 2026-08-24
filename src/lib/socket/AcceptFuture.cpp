@@ -9,19 +9,21 @@
 #include "Events.h"
 #include "Result.h"
 
-AsyncIO::AcceptFuture::AcceptFuture(int fd, RunTime *p_pEventLoop) : m_fd(fd), m_pEventLoop(p_pEventLoop)
+AsyncIO::AcceptFuture::AcceptFuture(int fd, RunTime *p_pEventLoop)
+    : m_pEventLoop(p_pEventLoop), m_fd(fd)
 {
-    AttachToRunTime();
-}
-
-AsyncIO::AcceptFuture *AsyncIO::AcceptFuture::Spawn(int fd, RunTime *p_pRunTime)
-{
-    AcceptFuture *pFuture = new AcceptFuture(fd, p_pRunTime);
-    return pFuture;
 }
 
 AsyncIO::AcceptFuture::~AcceptFuture()
 {
+}
+
+AsyncIO::AcceptFuture *AsyncIO::AcceptFuture::Spawn(int fd, RunTime *p_pRunTime)
+{
+    auto fut = new AcceptFuture(fd, p_pRunTime);
+    fut->AttachToRunTime();
+    std::cerr << "registerd to runtime" << std::endl;
+    return fut;
 }
 
 void AsyncIO::AcceptFuture::AttachToRunTime()
@@ -46,18 +48,8 @@ AsyncIO::FutureStatus AsyncIO::AcceptFuture::Poll()
     return FutureStatus::Completed;
 }
 
-void AsyncIO::AcceptFuture::Then(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> callback)
+std::unique_ptr<AsyncIO::TCPClientSocket> AsyncIO::AcceptFuture::GetValue()
 {
-    m_fContinuationCallback = [this, cb = std::move(callback)]()
-    {
-        AsyncIO::SocketInfo clientSockInfo{.fd = m_iCreatedClientSocketFD};
-        cb(std::make_unique<AsyncIO::TCPClientSocket>(m_pEventLoop, clientSockInfo));
-    };
-}
-
-void AsyncIO::AcceptFuture::Catch(std::function<void(Result)> callback)
-{
-    // m_fOnErrorCallback = std::move(callback);
-    // Result result{.success = false, .message = "Failed to accept connection with error code: " + std::to_string(m_iErrorCode)};
-    // m_fOnErrorCallback(result);
+    AsyncIO::SocketInfo clientSockInfo{.fd = m_iCreatedClientSocketFD};
+    return std::make_unique<AsyncIO::TCPClientSocket>(m_pEventLoop, clientSockInfo);
 }

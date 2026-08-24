@@ -115,6 +115,7 @@ void AsyncIO::RunTime::PollFuture(IFuture *p_pFuture, int fd, short currentEvent
         break;
     case FutureStatus::Completed:
     {
+        std::cerr << "compelete future " << std::endl;
         auto then = p_pFuture->GetContinuation();
         if (then)
         {
@@ -140,6 +141,7 @@ void AsyncIO::RunTime::RemoveFuture(int fd, short updatedEventMask, AsyncIO::IFu
 
 void AsyncIO::RunTime::SubScribeToEvent(int id, short eventsToSubscribeTo, std::function<void(AsyncIO::EventContext)> &&callback)
 {
+    return;
     m_oRequestQueue.Push(std::make_unique<AsyncIO::CallbackSubscribeHandler>(CallbackSubscribeHandler::CallbackSubscribeHandlerContext{
         .callback = std::move(callback),
         .fd = id,
@@ -149,6 +151,7 @@ void AsyncIO::RunTime::SubScribeToEvent(int id, short eventsToSubscribeTo, std::
 
 void AsyncIO::RunTime::UnRegisterFromAllEvents(int id)
 {
+    return;
     m_oRequestQueue.Push(std::make_unique<AsyncIO::CallbackUnSubscribeHandler>(CallbackUnSubscribeHandler::CallbackUnSubscribeHandlerContext{
         .fd = id,
     }));

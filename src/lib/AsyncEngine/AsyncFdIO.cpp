@@ -6,6 +6,7 @@
 #include "RunTime.h"
 #include "Events.h"
 #include "PollUtils.h"
+#include "ReadFuture.h"
 
 AsyncIO::AsyncFdIO::AsyncFdIO(RunTime *p_pEventLoop) : m_pEventLoop(p_pEventLoop)
 {
@@ -142,6 +143,11 @@ void AsyncIO::AsyncFdIO::HandleReadData()
     {
         m_fOnReadHandler(buffer, readBytes);
     }
+}
+
+AsyncIO::ReadFuture *AsyncIO::AsyncFdIO::Read(char *buffer, unsigned int size)
+{
+    return ReadFuture::Spawn(m_iFD, m_pEventLoop, buffer, size);
 }
 
 int AsyncIO::AsyncFdIO::ReadSync(char *buffer, unsigned int size)

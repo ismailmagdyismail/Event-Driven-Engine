@@ -15,6 +15,7 @@ namespace AsyncIO
 {
     class RunTime;
     class TCPServerSocket;
+    class ReadFuture;
     class TCPClientSocket
     {
     public:
@@ -33,6 +34,9 @@ namespace AsyncIO
         void OnDataAvailable(std::function<void(TCPClientSocket &)>); //! Use either onDataAvailable cb or onRead cb whichever is set last
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
+
+        //! Async APIs
+        ReadFuture *Read(char *buffer, unsigned int size);
 
         //! Synchrnous APIs
         int ReadSync(char *buffer, unsigned int size);

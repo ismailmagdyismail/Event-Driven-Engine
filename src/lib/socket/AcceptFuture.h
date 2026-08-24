@@ -9,7 +9,7 @@ namespace AsyncIO
     class TCPClientSocket;
     class RunTime;
 
-    class AcceptFuture : public IFuture
+    class AcceptFuture : public BaseFuture<std::unique_ptr<TCPClientSocket>>
     {
     public:
         //! Init, De-Init
@@ -25,12 +25,9 @@ namespace AsyncIO
 
         FutureStatus Poll() override;
 
-        //! Continuations
-        void Then(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> callback);
-        void Catch(std::function<void(Result)> callback);
-
     private:
         void AttachToRunTime();
+        std::unique_ptr<TCPClientSocket> GetValue() override;
 
         RunTime *m_pEventLoop{nullptr};
         int m_fd{-1};

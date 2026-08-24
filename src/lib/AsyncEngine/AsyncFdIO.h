@@ -12,6 +12,7 @@
 namespace AsyncIO
 {
     class RunTime;
+    class ReadFuture;
     class AsyncFdIO
     {
     public:
@@ -30,6 +31,9 @@ namespace AsyncIO
         void OnDataAvailable(std::function<void(void)>); //! Use either onDataAvailable cb or onRead cb whichever is set last
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
+
+        //! Async APIs
+        ReadFuture *Read(char *buffer, unsigned int size);
 
         //! Synchronous APIs
         int ReadSync(char *buffer, unsigned int size);
