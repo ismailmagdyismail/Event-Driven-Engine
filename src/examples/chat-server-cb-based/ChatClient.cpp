@@ -8,7 +8,7 @@ std::string strPrompt(">> ");
 
 int main()
 {
-    AsyncIO::RunTime loop;
+    AsyncIO::EventLoop loop;
     AsyncIO::TerminalIO terminal(&loop);
     auto res = AsyncIO::TCPClientSocket::Create(&loop);
     AsyncIO::TCPClientSocket &socket = res.second;

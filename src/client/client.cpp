@@ -3,14 +3,14 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#include "RunTime.h"
+#include "EventLoop.h"
 #include "TCPClientSocket.h"
 #include "TerminalIO.h"
 #include "Events.h"
 
 int main()
 {
-    AsyncIO::RunTime loop;
+    AsyncIO::EventLoop loop;
     auto socketCreation = AsyncIO::TCPClientSocket::Create(&loop);
     AsyncIO::TCPClientSocket &socket = socketCreation.second;
     AsyncIO::TerminalIO terminal(&loop);
@@ -36,7 +36,7 @@ int main()
     };
     terminal.OnRead(std::move(onTerminalRead));
 
-    if (!socket.Connect(8080).success)
+    if (!socket.Connect(9095).success)
     {
         std::cerr << "client failed to connect " << std::endl;
         return -1;

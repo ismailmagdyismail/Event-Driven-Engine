@@ -5,17 +5,13 @@
 #include <arpa/inet.h>
 #include <thread>
 #include <chrono>
-
-//! Async Engine Includes
 #include "PollUtils.h"
 #include "TCPSocket.h"
 #include "TCPServerSocket.h"
-#include "RunTime.h"
+#include "EventLoop.h"
 #include "Events.h"
-#include "AcceptFuture.h"
-#include "ReadFuture.h"
 
-AsyncIO::RunTime loop;
+AsyncIO::EventLoop loop;
 auto serverSocketCreation = AsyncIO::TCPServerSocket::Create(&loop);
 AsyncIO::TCPServerSocket &serverSocket = serverSocketCreation.second;
 std::unordered_map<unsigned int, std::unique_ptr<AsyncIO::TCPClientSocket>> activeConnections;
@@ -63,23 +59,8 @@ int main()
         std::cerr << listenResult.message << std::endl;
         exit(1);
     }
-    std::cout << "Server Listening on Port " << port << std::endl;
 
-    char buffer[1024];
-    unsigned int size = 1024;
-
-    serverSocket
-        .Accept()
-        ->Then([&](std::unique_ptr<AsyncIO::TCPClientSocket> clientSocket)
-               { std::cerr << "client connection made " << clientSocket->GetID()  << std::endl; return clientSocket->Read(buffer, size); })
-        ->Then([](std::pair<char *, unsigned int> data)
-               { std::cerr << "data recieved " << std::string_view(data.first, data.second) << std::endl; });
-
-    std::cerr
-        << "chain created " << std::endl;
-
-    // ->Then([](char *buffer, unsigned int size)
-    //    { std::cerr << "Read bytes = " << std::string_view(buffer, size) << std::endl; });
+    serverSocket.OnAccept(OnAcceptConnectionHandler);
     loop.Run();
 
     serverSocket.Close();

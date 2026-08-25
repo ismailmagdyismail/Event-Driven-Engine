@@ -11,14 +11,13 @@
 
 namespace AsyncIO
 {
-    class RunTime;
-    class AcceptFuture;
+    class EventLoop;
     class TCPServerSocket
     {
     public:
-        static std::pair<Result, TCPServerSocket> Create(RunTime *);
-        TCPServerSocket(RunTime *);
-        TCPServerSocket(RunTime *, SocketInfo);
+        static std::pair<Result, TCPServerSocket> Create(EventLoop *);
+        TCPServerSocket(EventLoop *);
+        TCPServerSocket(EventLoop *, SocketInfo);
         ~TCPServerSocket();
 
         TCPServerSocket(const TCPServerSocket &) = delete;
@@ -27,13 +26,7 @@ namespace AsyncIO
         TCPServerSocket &operator=(TCPServerSocket &&) = delete;
 
         Result Listen(unsigned int port);
-
-        //! Callbacks
         void OnAccept(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> p_fOnAcceptCallback);
-
-        //! Async APIs
-        AcceptFuture *Accept();
-
         int GetID();
         void Close();
 
@@ -42,6 +35,6 @@ namespace AsyncIO
         SocketInfo m_oSocketData;
         sockaddr_in m_oAddress;
         unsigned int m_uiPort;
-        RunTime *m_pEventLoop;
+        EventLoop *m_pEventLoop;
     };
 }

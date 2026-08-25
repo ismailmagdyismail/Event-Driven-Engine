@@ -3,7 +3,7 @@
 #include <string_view>
 #include <vector>
 
-#include "RunTime.h"
+#include "EventLoop.h"
 #include "TCPServerSocket.h"
 #include "HttpRequestParser.h"
 #include "TerminalIO.h"
@@ -46,7 +46,7 @@ std::string response =
 int main()
 {
     int port = 9095;
-    AsyncIO::RunTime loop;
+    AsyncIO::EventLoop loop;
     auto socketRes = AsyncIO::TCPServerSocket::Create(&loop);
     AsyncIO::TCPServerSocket &serverSocket = socketRes.second;
 

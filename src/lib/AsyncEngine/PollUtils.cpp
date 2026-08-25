@@ -40,17 +40,3 @@ void AsyncIO::PollHelpers::LogEventsState(short state)
     std::cout << "POLLHUP = " << IsEventSet(state, POLLHUP) << std::endl;
     std::cout << "POLLNVAL = " << IsEventSet(state, POLLNVAL) << std::endl;
 }
-
-std::vector<short> AsyncIO::PollHelpers::GetActiveEvents(short revents)
-{
-    std::vector<short> activeEvents;
-    for (short event = 1; event != 0; event <<= 1)
-    {
-        if (AsyncIO::PollHelpers::IsEventSet(revents, event))
-        {
-            activeEvents.push_back(event);
-        }
-    }
-
-    return activeEvents;
-}
