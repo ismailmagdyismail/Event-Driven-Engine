@@ -7,15 +7,16 @@
 //! Async Engine
 #include "Result.h"
 #include "TCPSocket.h"
-#include "EventLoop.h"
+#include "RunTime.h"
 
 namespace AsyncIO
 {
-    class EventLoop;
+    class RunTime;
+    class ReadFuture;
     class AsyncFdIO
     {
     public:
-        AsyncFdIO(EventLoop *);
+        AsyncFdIO(RunTime *);
         ~AsyncFdIO();
 
         AsyncFdIO(const AsyncFdIO &) = delete;
@@ -30,6 +31,9 @@ namespace AsyncIO
         void OnDataAvailable(std::function<void(void)>); //! Use either onDataAvailable cb or onRead cb whichever is set last
         void OnRead(std::function<void(char *, unsigned int)>);
         void OnClose(std::function<void(void)>);
+
+        //! Async APIs
+        ReadFuture *Read(char *buffer, unsigned int size);
 
         //! Synchronous APIs
         int ReadSync(char *buffer, unsigned int size);
@@ -55,6 +59,6 @@ namespace AsyncIO
         std::function<void(char *, unsigned int)> m_fOnReadHandler{nullptr};
         std::function<void(void)> m_fOnDataAvailableHandler{nullptr};
         int m_iFD{-1};
-        EventLoop *m_pEventLoop{nullptr};
+        RunTime *m_pEventLoop{nullptr};
     };
 }

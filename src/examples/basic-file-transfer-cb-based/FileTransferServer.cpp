@@ -24,7 +24,7 @@ std::string strConnectionAccLog = "Connection Accepted!";
 std::string strDisconnectionLog = "Client Disconnected!\n";
 std::string strServerLaunchFailure = "Failed listen on port 9090\n";
 
-AsyncIO::EventLoop loop;
+AsyncIO::RunTime loop;
 AsyncIO::TerminalIO terminal(&loop);
 int fileFD;
 unsigned long long ullTotalFileBytes = 0;

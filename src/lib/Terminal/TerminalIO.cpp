@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-AsyncIO::TerminalIO::TerminalIO(EventLoop *p_pLoop)
+AsyncIO::TerminalIO::TerminalIO(RunTime *p_pLoop)
     : m_oStdIn(p_pLoop),
       m_oStdOut(p_pLoop)
 {

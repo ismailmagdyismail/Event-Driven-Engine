@@ -1,5 +1,9 @@
 # TODO:
 
+- add IDispatcher & CallbackDispatcher and FutureDispatcher
+  - to prevent the simulatnous use of both of them leading to ub behaviour
+  - and make it easier / transperant without changing alot
+- Add Stack allocated futures + ID / handles to avoid dangling refs
 - add threading and RCU | COW
 - add thread pool
 
@@ -25,7 +29,7 @@
     */
 
     //! setup event loop, wire it up with async FDs / sockets
-    AsyncIO::EventLoop loop;
+    AsyncIO::RunTime loop;
     auto serverSocketCreation = AsyncIO::TCPServerSocket::Create(&loop);
     AsyncIO::TCPServerSocket &serverSocket = serverSocketCreation.second;
 
@@ -44,7 +48,7 @@
     =========================== Client ==========================================
     =============================================================================
     */
-    AsyncIO::EventLoop loop;
+    AsyncIO::RunTime loop;
     auto socketCreation = AsyncIO::TCPClientSocket::Create(&loop);
     AsyncIO::TCPClientSocket &socket = socketCreation.second;
     AsyncIO::TerminalIO terminal(AsyncIO::TerminalIO::TerminalType::STDIN, &loop);

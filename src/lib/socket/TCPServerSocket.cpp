@@ -6,10 +6,11 @@
 //! Async Engine
 #include "TCPServerSocket.h"
 #include "TCPSocket.h"
-#include "EventLoop.h"
+#include "RunTime.h"
 #include "Events.h"
+#include "AcceptFuture.h"
 
-std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::Create(AsyncIO::EventLoop *p_pEventLoop)
+std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::Create(AsyncIO::RunTime *p_pEventLoop)
 {
     //! 1. Create Socket FD
     std::pair<bool, AsyncIO::SocketInfo> socketCreationResult = AsyncIO::CreateTCPSocket();
@@ -46,12 +47,12 @@ std::pair<AsyncIO::Result, AsyncIO::TCPServerSocket> AsyncIO::TCPServerSocket::C
     };
 }
 
-AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::EventLoop *p_pEventloop)
+AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::RunTime *p_pEventloop)
 {
     m_pEventLoop = p_pEventloop;
 }
 
-AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::EventLoop *p_pEventloop, AsyncIO::SocketInfo socketInfo)
+AsyncIO::TCPServerSocket::TCPServerSocket(AsyncIO::RunTime *p_pEventloop, AsyncIO::SocketInfo socketInfo)
     : m_oSocketData(socketInfo), m_pEventLoop(p_pEventloop)
 {
 }
@@ -105,6 +106,11 @@ std::pair<AsyncIO::Result, AsyncIO::SocketInfo> AsyncIO::TCPServerSocket::Accept
             AsyncIO::SocketInfo{},
         };
     }
+}
+
+AsyncIO::AcceptFuture *AsyncIO::TCPServerSocket::Accept()
+{
+    return AcceptFuture::Spawn(m_oSocketData.fd, m_pEventLoop);
 }
 
 void AsyncIO::TCPServerSocket::OnAccept(std::function<void(std::unique_ptr<AsyncIO::TCPClientSocket>)> p_fOnAcceptCallback)
